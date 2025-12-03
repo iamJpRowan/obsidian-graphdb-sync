@@ -8,7 +8,7 @@ If in the process of building a new feature an alternative pattern is worth cons
 
 - **Use native Obsidian Plugin API as much as possible** - Always check `node_modules/obsidian/obsidian.d.ts` for complete type definitions and prefer the use of these over building net new. When building new prefer to extend existing Obsidian classes when possible.
 - **Attempt to match the look and feel of Obsidian** - Prefer to leverage existing Obsidian components, CSS classes, and variables. Limit the amount of additional CSS created. When creating new UI elements attempt to style in a manner that matches the existing UI
-- **Maintain mobile app compatibility** - This plugin will be used in mobile as often as desktop. Do not recommend importing additional node modules as that will break the ability to load the plugin in mobile. Consider how component design will function on a device
+- **Desktop-only plugin** - This plugin is designated as desktop-only (`isDesktopOnly: true` in manifest.json). Node modules can be used freely without mobile compatibility concerns.
 
 ## Conversation Workflow
 

@@ -11,7 +11,8 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -noEmit -skipLibCheck",
     "version": "node version-bump.mjs && git add manifest.json versions.json",
-    "prepare": "husky"
+    "prepare": "husky",
+    "migrate": "tsx scripts/migrate.ts"
   },
   "keywords": [
     "obsidian",
@@ -28,6 +29,9 @@
       "eslint --fix"
     ]
   },
+  "dependencies": {
+    "neo4j-driver": "^5.20.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
     "@types/node": "^16.11.6",
@@ -40,6 +44,7 @@
     "lint-staged": "^16.2.7",
     "obsidian": "latest",
     "tslib": "2.4.0",
+    "tsx": "^4.19.2",
     "typescript": "5.3.3",
     "typescript-eslint": "^8.15.0"
   }
