@@ -47,6 +47,19 @@ When suggesting approaches, prefer:
 - Testing new approaches quickly rather than extensive planning
 - Assuming the developer can debug and resolve problems
 
+## Git Commit Conventions
+
+- **Use semantic commit prefixes** for all commits:
+  - `feat:` - New features
+  - `fix:` - Bug fixes
+  - `chore:` - Maintenance tasks, dependency updates, configuration
+  - `docs:` - Documentation changes
+  - `refactor:` - Code restructuring without changing behavior
+  - `style:` - Code style/formatting changes
+  - `test:` - Adding or updating tests
+- Keep the first line under 72 characters
+- Use the body for additional context when needed
+
 ## Additional Requirements and Conventions
 
 - All public methods should have JS docs
