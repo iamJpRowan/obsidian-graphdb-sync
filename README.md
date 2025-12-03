@@ -1,254 +1,98 @@
-# Obsidian Plugin Template
+# Obsidian GraphDB Sync
 
-A minimal, production-ready template for developing Obsidian plugins with TypeScript.
+Sync your Obsidian vault to a graph database, transforming your notes into a queryable knowledge graph with typed relationships.
+
+## Status
+
+🚧 **Phase 1: Migration** - Currently implementing batch migration from vault to graph database.
+
+## Supported Databases
+
+| Database | Status | Notes |
+|----------|--------|-------|
+| Neo4j | ✅ Supported | Primary implementation |
 
 ## Features
 
-- ✨ **Minimal Setup** - Just the essentials to get started
-- 🔧 **TypeScript** - Full type safety with Obsidian API
-- 🎨 **CSS Bundling** - Automatically collects and bundles all CSS files from your project
-- 🔄 **Hot Reload** - Auto-copy to vault on file changes during development
-- 📦 **Production Build** - Optimized builds with tree-shaking and minification
-- 🚀 **GitHub Actions** - Automated linting and releases with CI/CD
-- ✅ **ESLint** - Modern ESLint v9+ with Obsidian-compliant rules
-- 🔐 **Environment Variables** - Secure vault path management with `.env`
+### Planned Capabilities
 
-## Getting Started
+- **Full vault migration** - Load all files as nodes with frontmatter properties
+- **Intelligent relationship mapping** - Convert wikilinks to typed graph relationships
+- **Entity resolution** - Create placeholder nodes for unresolved wikilink targets
+- **File type strategies** - Custom handling for Occurrences, People, Places, Topics, etc.
+- **Content hash tracking** - Detect changes for incremental updates
+- **Database abstraction** - Pluggable graph database backend
 
-### 1. Use This Template
+### Roadmap
 
-Click the "Use this template" button on GitHub to create your own repository.
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Batch migration via commands | 🔄 In Progress |
+| Phase 1.5 | Manual sync commands in Obsidian | ⏳ Planned |
+| Phase 2 | Real-time file watchers for auto-sync | ⏳ Planned |
 
-### 2. Clone Your Repository
+## Installation
+
+### Prerequisites
+
+- Graph database instance (Neo4j recommended)
+- Obsidian v0.15.0 or higher
+
+### Neo4j Setup
+
+1. Install [Neo4j Desktop](https://neo4j.com/download/) or use [Neo4j Aura](https://neo4j.com/cloud/aura/) (cloud)
+2. Create a new database and note your connection credentials
+3. Configure the plugin with your connection details
+
+### From Source
+
+1. Clone this repository to your vault's `.obsidian/plugins/` directory
+2. Run `npm install`
+3. Run `npm run build`
+4. Enable the plugin in Obsidian settings
+
+## Configuration
+
+*Configuration options will be documented as they are implemented.*
+
+## Development
+
+### Setup
 
 ```bash
-git clone https://github.com/yourusername/your-plugin-name.git
-cd your-plugin-name
-```
-
-### 3. Install Dependencies
-
-```bash
+git clone https://github.com/jprowan/obsidian-graphdb-sync.git
+cd obsidian-graphdb-sync
 npm install
-```
-
-### 4. Configure Your Plugin
-
-Update the following files with your plugin information:
-
-- `src/manifest.json` - Plugin ID, name, description, author
-- `package.json` - Package name, description, author
-- `LICENSE` - Your name and year
-
-### 5. Set Up Development Environment
-
-Create a `.env` file in the root directory:
-
-```bash
 cp .env.example .env
-```
-
-Edit `.env` and set your vault path:
-
-```
-VAULT_PATH=/path/to/your/vault
-```
-
-**Example:**
-
-```
-VAULT_PATH=/Users/username/Documents/MyVault
-```
-
-The build system will automatically install the plugin to `<VAULT_PATH>/.obsidian/plugins/<plugin-id>` using the `id` from `manifest.json`.
-
-### 6. Start Development
-
-```bash
+# Edit .env with your vault path
 npm run dev
 ```
 
-This will:
-
-- Watch for file changes
-- Automatically compile and copy files to your vault
-- Bundle all CSS files into a single `styles.css`
-
-You'll need to reload Obsidian to see changes (Cmd/Ctrl + R).
-
-### 7. Build for Production
-
-For local testing in your vault:
+### Building
 
 ```bash
-npm run build
+npm run build        # Build to vault
+npm run build:release # Build for distribution
 ```
 
-This creates optimized production files in your vault's plugin directory.
+## Architecture
 
-For packaging and releases (CI/CD):
-
-```bash
-npm run build:release
-```
-
-This creates optimized files in the `build/` directory without requiring `VAULT_PATH`.
-
-## Project Structure
-
-```
-.
-├── src/
-│   ├── main.ts          # Main plugin entry point
-│   ├── manifest.json    # Plugin manifest
-│   ├── types.ts         # Custom types and interfaces
-│   └── styles.css       # Optional: main styles (auto-bundled)
-├── build/               # Release build output (gitignored)
-├── .env                 # Environment variables (create from .env.example)
-├── .env.example         # Example environment configuration
-├── eslint.config.mjs    # ESLint configuration (flat config)
-├── .gitignore           # Git ignore rules
-├── .cursorignore        # Cursor ignore rules
-├── esbuild.config.mjs   # Build configuration
-├── package.json         # Package dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-├── version-bump.mjs     # Version management script
-└── versions.json        # Version compatibility tracking
-```
-
-## CSS Bundling
-
-The template includes automatic CSS bundling. Any `.css` files in your `src/` directory will be automatically collected and bundled into a single `styles.css` file in your vault's plugin directory.
-
-**Example:**
+The plugin uses an abstracted graph service layer, allowing different graph database implementations while maintaining a consistent internal API.
 
 ```
 src/
-├── components/
-│   ├── button.css
-│   └── modal.css
-└── views/
-    └── sidebar.css
+├── core/                    # Shared business logic
+│   ├── graph-service        # GraphService interface
+│   │   ├── index.ts
+│   │   └── neo4j-service.ts # Neo4j implementation
+│   ├── parser.ts            # Frontmatter/wikilink parsing
+│   ├── types.ts             # TypeScript interfaces
+│   └── vault-scanner.ts     # Vault traversal logic
+├── commands/                # Obsidian command handlers
+├── watchers/                # Real-time sync (Phase 2)
+└── main.ts                  # Plugin entry point
 ```
-
-All these files will be bundled into a single `styles.css` with source comments for easy debugging.
-
-## GitHub Actions (CI/CD)
-
-This template includes automated workflows:
-
-### Lint Workflow
-
-Runs on every push and pull request to the `main` branch:
-- ✅ Runs ESLint to check code quality
-- ✅ Runs TypeScript type checking
-- ✅ Ensures code meets Obsidian plugin standards
-
-The workflow must pass before merging PRs.
-
-### Release Workflow
-
-Triggers when you push a git tag (e.g., `1.0.0`):
-- ✅ Installs dependencies
-- ✅ Builds the plugin with `npm run build:release`
-- ✅ Creates a GitHub release
-- ✅ Attaches `main.js`, `manifest.json`, and `styles.css`
-- ✅ Generates release notes automatically
-
-No manual building or file uploads required!
-
-## Version Management
-
-To release a new version:
-
-1. Update the version in `package.json`
-2. Run `npm run version` to sync `manifest.json` and `versions.json`
-3. Commit the changes
-4. Create a git tag: `git tag -a 1.0.0 -m "Release 1.0.0"`
-5. Push the tag: `git push origin 1.0.0`
-
-The GitHub Action will automatically create a release with the built files.
-
-## Publishing Your Plugin
-
-### Automated Release (Recommended)
-
-When you push a git tag, the GitHub Action automatically:
-
-- Builds the plugin
-- Creates a GitHub release
-- Attaches `main.js`, `manifest.json`, and `styles.css`
-
-### Manual Release
-
-1. Run `npm run build:release`
-2. Copy these files from the `build/` directory:
-   - `main.js`
-   - `manifest.json`
-   - `styles.css`
-3. Create a release on GitHub and attach these files
-
-### Submit to Community Plugins
-
-Follow the [official Obsidian plugin submission guide](https://docs.obsidian.md/Plugins/Releasing/Submit+your+plugin).
-
-## Development Tips
-
-### Enable Hot Reload in Obsidian
-
-Install the [Hot-Reload plugin](https://github.com/pjeby/hot-reload) for automatic plugin reloading during development.
-
-### Debugging
-
-Use the Developer Console (Cmd/Ctrl + Shift + I) to view console logs and errors.
-
-### Linting
-
-The template uses ESLint v9+ with flat config format for code quality:
-
-```bash
-# Check for linting errors
-npm run lint
-
-# Automatically fix linting errors
-npm run lint:fix
-
-# Type check without building
-npm run typecheck
-```
-
-The linting configuration (`eslint.config.mjs`) matches Obsidian's plugin submission requirements.
-
-### Pre-commit Hooks
-
-The template uses Husky and lint-staged to automatically lint your code before commits:
-
-- **Automatic Setup**: Git hooks are installed automatically when you run `npm install`
-- **Fast Linting**: Only lints staged files (not the entire codebase)
-- **Auto-fix**: Automatically fixes linting errors when possible
-- **Prevents Bad Commits**: Stops commits with unfixable linting errors
-
-This ensures code quality and prevents CI failures due to linting issues.
-
-### TypeScript Path Aliases
-
-The template includes a `@/*` path alias pointing to `src/*`:
-
-```typescript
-// Instead of
-import { MyClass } from "../../utils/myClass"
-
-// You can write
-import { MyClass } from "@/utils/myClass"
-```
-
-## Resources
-
-- [Obsidian API Documentation](https://docs.obsidian.md/Home)
-- [Obsidian Plugin Developer Docs](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin)
-- [Obsidian API on GitHub](https://github.com/obsidianmd/obsidian-api)
-- [Community Plugins](https://github.com/obsidianmd/obsidian-releases/blob/master/community-plugins.json)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.

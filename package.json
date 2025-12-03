@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-plugin-template",
+  "name": "obsidian-graphdb-sync",
   "version": "0.1.0",
-  "description": "A minimal template for Obsidian plugins",
+  "description": "Obsidian plugin to sync vault files and relationships to a graph database",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -15,9 +15,13 @@
   },
   "keywords": [
     "obsidian",
-    "obsidian-plugin"
+    "obsidian-plugin",
+    "graph-database",
+    "neo4j",
+    "sync",
+    "knowledge-graph"
   ],
-  "author": "",
+  "author": "Jp Rowan",
   "license": "MIT",
   "lint-staged": {
     "*.ts": [

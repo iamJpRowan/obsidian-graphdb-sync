@@ -1,25 +1,11 @@
 import { Plugin } from "obsidian"
 
-export default class MyPlugin extends Plugin {
+export default class GraphDBSyncPlugin extends Plugin {
   async onload() {
-    console.log("Loading plugin")
-
-    // Add a ribbon icon
-    this.addRibbonIcon("dice", "Sample Plugin", (evt: MouseEvent) => {
-      console.log("Ribbon icon clicked")
-    })
-
-    // Add a simple command
-    this.addCommand({
-      id: "sample-command",
-      name: "Sample Command",
-      callback: () => {
-        console.log("Sample command executed")
-      },
-    })
+    // Plugin initialization will go here
   }
 
   onunload() {
-    console.log("Unloading plugin")
+    // Cleanup will go here
   }
 }
