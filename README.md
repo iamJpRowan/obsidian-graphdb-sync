@@ -48,17 +48,19 @@ Create a `.env` file in the root directory:
 cp .env.example .env
 ```
 
-Edit `.env` and set your vault plugin path:
+Edit `.env` and set your vault path:
 
 ```
-VAULT_PLUGIN_PATH=/path/to/your/vault/.obsidian/plugins/your-plugin-id
+VAULT_PATH=/path/to/your/vault
 ```
 
 **Example:**
 
 ```
-VAULT_PLUGIN_PATH=/Users/username/Documents/MyVault/.obsidian/plugins/my-plugin
+VAULT_PATH=/Users/username/Documents/MyVault
 ```
+
+The build system will automatically install the plugin to `<VAULT_PATH>/.obsidian/plugins/<plugin-id>` using the `id` from `manifest.json`.
 
 ### 6. Start Development
 
@@ -90,7 +92,7 @@ For packaging and releases (CI/CD):
 npm run build:release
 ```
 
-This creates optimized files in the `build/` directory without requiring `VAULT_PLUGIN_PATH`.
+This creates optimized files in the `build/` directory without requiring `VAULT_PATH`.
 
 ## Project Structure
 

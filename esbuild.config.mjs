@@ -13,21 +13,33 @@ dotenv.config()
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url))
 
+// Read plugin ID from manifest.json
+const manifest = JSON.parse(await fs.readFile("manifest.json", "utf8"))
+const pluginId = manifest.id
+
 // Detect build modes
 const prod = process.argv[2] === "production"
 const isReleaseBuild = process.env.RELEASE_BUILD === "true"
 
 // Determine output directory
-const outDir = isReleaseBuild
-  ? path.join(__dirname, "build")
-  : process.env.VAULT_PLUGIN_PATH
+// For release builds, output to ./build
+// For dev builds, derive plugin path from vault path
+let outDir
+if (isReleaseBuild) {
+  outDir = path.join(__dirname, "build")
+} else if (process.env.VAULT_PATH) {
+  outDir = path.join(process.env.VAULT_PATH, ".obsidian", "plugins", pluginId)
+} else {
+  outDir = null
+}
 
 // Validate output directory
 if (!outDir) {
-  console.error("Error: VAULT_PLUGIN_PATH environment variable is not set")
+  console.error("Error: VAULT_PATH environment variable is not set")
   console.error(
-    "Please create a .env file with VAULT_PLUGIN_PATH=/path/to/vault/.obsidian/plugins/your-plugin"
+    "Please create a .env file with VAULT_PATH=/path/to/your/vault"
   )
+  console.error(`\nThe plugin will be installed to: <VAULT_PATH>/.obsidian/plugins/${pluginId}`)
   console.error("\nFor CI/CD builds, set RELEASE_BUILD=true to build to ./build directory")
   process.exit(1)
 }
