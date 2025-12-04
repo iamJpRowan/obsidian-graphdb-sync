@@ -1,3 +1,15 @@
 /* Main plugin styles */
 
-/* Add your custom styles here */
+/* Test connection result styles */
+.graphdb-test-success {
+	color: var(--text-success);
+}
+
+.graphdb-test-error {
+	color: var(--text-error);
+}
+
+.graphdb-test-testing {
+	color: var(--text-muted);
+	opacity: var(--icon-opacity);
+}

@@ -1,9 +1,15 @@
-// Add your custom types here
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface PluginSettings {
-	// Add your settings here
+	neo4jUri: string
+	neo4jUsername: string
+	// Password is stored in session only (cleared when Obsidian closes)
+}
+
+export interface Neo4jCredentials {
+	username: string
+	password: string
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
-  // Add your default settings here
+	neo4jUri: "neo4j://localhost:7687",
+	neo4jUsername: "neo4j",
 }
