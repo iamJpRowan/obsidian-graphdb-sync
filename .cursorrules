@@ -35,7 +35,7 @@ For each step, follow this cycle:
 - Don't proceed to implementation until explicitly instructed
 - Always prompt for testing after implementation
 - Commit after each completed step, not in bulk at the end
-- If implementation reveals need to revisit approach, pause and realign
+- **Important!** If at any point the agree upon approach is determined not to work stop implementing. Explain the issue and ask how we should proceed
 
 ## CSS and Styling Guidelines
 
