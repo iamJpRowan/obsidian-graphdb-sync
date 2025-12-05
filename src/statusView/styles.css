@@ -1,0 +1,167 @@
+/* Status view styles */
+.graphdb-sync-status-view {
+	padding: 20px;
+}
+
+.graphdb-status-section,
+.graphdb-progress-section,
+.graphdb-results-section,
+.graphdb-controls-section {
+	margin-bottom: 24px;
+}
+
+.graphdb-status {
+	padding: 12px;
+	border-radius: 4px;
+	font-weight: 500;
+}
+
+.graphdb-status-ready {
+	background-color: var(--background-secondary);
+	color: var(--text-normal);
+}
+
+.graphdb-status-running {
+	background-color: var(--background-secondary);
+	color: var(--text-warning, #f59e0b);
+}
+
+.graphdb-status-paused {
+	background-color: var(--background-secondary);
+	color: var(--text-muted);
+}
+
+.graphdb-status-error {
+	background-color: var(--background-secondary);
+	color: var(--text-error);
+}
+
+/* Progress section */
+.graphdb-progress {
+	margin-top: 8px;
+}
+
+.graphdb-progress-bar-container {
+	width: 100%;
+	height: 8px;
+	background-color: var(--background-secondary);
+	border-radius: 4px;
+	overflow: hidden;
+	margin-bottom: 8px;
+}
+
+.graphdb-progress-bar {
+	height: 100%;
+	background-color: var(--interactive-accent);
+	transition: width 0.3s ease;
+}
+
+.graphdb-progress-text {
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+/* Results section */
+.graphdb-results-empty {
+	color: var(--text-muted);
+	font-style: italic;
+	padding: 12px;
+}
+
+.graphdb-results {
+	padding: 16px;
+	border-radius: 4px;
+	background-color: var(--background-secondary);
+}
+
+.graphdb-results-success {
+	border-left: 3px solid var(--text-success);
+}
+
+.graphdb-results-error {
+	border-left: 3px solid var(--text-error);
+}
+
+.graphdb-results-header {
+	margin-bottom: 12px;
+}
+
+.graphdb-results-title {
+	font-weight: 600;
+	font-size: 1.1em;
+}
+
+.graphdb-results-stats {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 12px;
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.graphdb-results-error-count {
+	color: var(--text-error);
+}
+
+.graphdb-results-timestamp {
+	font-size: 0.85em;
+	opacity: 0.8;
+}
+
+.graphdb-results-errors {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.graphdb-results-errors-title {
+	font-weight: 600;
+	margin-bottom: 8px;
+	color: var(--text-error);
+}
+
+.graphdb-results-errors-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.graphdb-results-error-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px;
+	background-color: var(--background-primary);
+	border-radius: 4px;
+	font-size: 0.85em;
+}
+
+.graphdb-results-error-file {
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.graphdb-results-error-message {
+	color: var(--text-error);
+}
+
+.graphdb-results-error-more {
+	color: var(--text-muted);
+	font-style: italic;
+	margin-top: 4px;
+}
+
+/* Controls section */
+.graphdb-controls {
+	display: flex;
+	gap: 8px;
+}
+
+.graphdb-controls button {
+	flex: 0 0 auto;
+}
+
+

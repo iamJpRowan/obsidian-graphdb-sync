@@ -1,0 +1,29 @@
+/* Status bar item styles */
+.graphdb-status-bar-item {
+	cursor: pointer;
+	transition: color 0.2s ease;
+}
+
+.graphdb-status-bar-item.graphdb-status-warning {
+	color: var(--text-warning, #f59e0b);
+}
+
+.graphdb-status-bar-item.graphdb-status-error {
+	color: var(--text-error);
+}
+
+/* Fade animation for running migration */
+.graphdb-status-bar-item.graphdb-status-animating {
+	animation: graphdb-fade 1.5s ease-in-out infinite;
+}
+
+@keyframes graphdb-fade {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.4;
+	}
+}
+
+

@@ -2,6 +2,16 @@ export interface PluginSettings {
 	neo4jUri: string
 	neo4jUsername: string
 	// Password is stored in session only (cleared when Obsidian closes)
+	lastMigrationResult?: {
+		success: boolean
+		totalFiles: number
+		successCount: number
+		errorCount: number
+		errors: Array<{ file: string; error: string }>
+		duration: number
+		message?: string
+		timestamp: number
+	}
 }
 
 export interface Neo4jCredentials {

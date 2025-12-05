@@ -1,8 +1,8 @@
 import { Notice, PluginSettingTab, Setting } from "obsidian"
-import type GraphDBSyncPlugin from "../main"
-import { CredentialService } from "../services/CredentialService"
-import { Neo4jService } from "../services/Neo4jService"
-import { DEFAULT_SETTINGS } from "../types"
+import type GraphDBSyncPlugin from "./main"
+import { CredentialService } from "./services/CredentialService"
+import { StateService, type PluginState } from "./services/StateService"
+import { DEFAULT_SETTINGS } from "./types"
 
 /**
  * Settings tab for configuring Neo4j connection
@@ -11,7 +11,7 @@ export class SettingsTab extends PluginSettingTab {
 	plugin: GraphDBSyncPlugin
 	private passwordInput: HTMLInputElement | null = null
 	private connectionStatusDescEl: HTMLElement | null = null
-	private testButton: HTMLButtonElement | null = null
+	private unsubscribeState: (() => void) | null = null
 
 	constructor(plugin: GraphDBSyncPlugin) {
 		super(plugin.app, plugin)
@@ -21,6 +21,17 @@ export class SettingsTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this
 		containerEl.empty()
+
+		// Unsubscribe from previous state changes
+		if (this.unsubscribeState) {
+			this.unsubscribeState()
+			this.unsubscribeState = null
+		}
+
+		// Subscribe to connection state changes
+		this.unsubscribeState = StateService.subscribe("connection", (state: PluginState) => {
+			this.updateConnectionStatusDisplay(state.connection)
+		})
 
 		// Neo4j URI setting
 		new Setting(containerEl)
@@ -36,8 +47,8 @@ export class SettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.neo4jUri = value
 						await this.plugin.saveSettings()
-						this.resetConnectionStatus()
-						this.updateConnectionStatus()
+						// Auto-test connection on change (state changes will trigger UI updates)
+						await StateService.testConnection(this.plugin.settings)
 					})
 			)
 
@@ -55,8 +66,8 @@ export class SettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.neo4jUsername = value
 						await this.plugin.saveSettings()
-						this.resetConnectionStatus()
-						this.updateConnectionStatus()
+						// Auto-test connection on change (state changes will trigger UI updates)
+						await StateService.testConnection(this.plugin.settings)
 					})
 			)
 
@@ -96,7 +107,12 @@ export class SettingsTab extends PluginSettingTab {
 							this.passwordInput.value = ""
 						}
 						new Notice("Password set for this session")
-						this.updateConnectionStatus()
+						// Auto-test connection immediately after setting password (bypass debounce)
+						await StateService.testConnection(
+							this.plugin.settings,
+							500,
+							true
+						)
 						this.display() // Refresh to show clear button only
 					}
 				})
@@ -110,8 +126,8 @@ export class SettingsTab extends PluginSettingTab {
 				button.onClick(async () => {
 					CredentialService.clearSessionPassword()
 					new Notice("Session password cleared")
-					this.resetConnectionStatus()
-					this.updateConnectionStatus()
+					// Auto-test connection after clearing password (will show error, state changes will trigger UI updates)
+					await StateService.testConnection(this.plugin.settings)
 					this.display() // Refresh to show input and set button
 				})
 			})
@@ -122,129 +138,59 @@ export class SettingsTab extends PluginSettingTab {
 			.setName("Connection status")
 		this.connectionStatusDescEl = connectionStatusSetting.descEl
 
-		// Test button
-		connectionStatusSetting.addButton((button) => {
-			this.testButton = button.buttonEl
-			button.setButtonText("Test")
-			button.onClick(async () => {
-				await this.testConnection()
-			})
-		})
+		// Initialize connection status from current state
+		const currentState = StateService.getState()
+		this.updateConnectionStatusDisplay(currentState.connection)
 
-		// Initialize connection status
-		this.updateConnectionStatus()
+		// Auto-test connection on initial display
+		StateService.testConnection(this.plugin.settings)
 	}
 
-	private updateConnectionStatus(): void {
-		if (!this.connectionStatusDescEl) {
-			return
-		}
-
-		const hasPassword = CredentialService.hasPassword()
-		const hasUri =
-			this.plugin.settings.neo4jUri || DEFAULT_SETTINGS.neo4jUri
-		const hasUsername =
-			this.plugin.settings.neo4jUsername ||
-			DEFAULT_SETTINGS.neo4jUsername
-
-		// Update test button state
-		if (this.testButton) {
-			this.testButton.disabled = !hasPassword || !hasUri || !hasUsername
-		}
-
-		// Update status description if not already set by test result
-		if (!this.connectionStatusDescEl.hasClass("graphdb-test-testing")) {
-			if (!hasPassword) {
-				this.updateStatusDisplay(
-					"default",
-					"Password required (enter password above)"
-				)
-			} else if (!hasUri || !hasUsername) {
-				this.updateStatusDisplay("default", "URI and username required")
-			} else {
-				this.updateStatusDisplay(
-					"default",
-					"Ready to test connection"
-				)
-			}
+	onClose(): void {
+		// Unsubscribe from state changes when settings tab closes
+		if (this.unsubscribeState) {
+			this.unsubscribeState()
+			this.unsubscribeState = null
 		}
 	}
 
-	private resetConnectionStatus(): void {
-		if (!this.connectionStatusDescEl) {
-			return
-		}
-
-		// Clear status classes
-		this.connectionStatusDescEl.removeClass("graphdb-test-success")
-		this.connectionStatusDescEl.removeClass("graphdb-test-error")
-		this.connectionStatusDescEl.removeClass("graphdb-test-testing")
-	}
-
-	private updateStatusDisplay(
-		type: "default" | "testing" | "success" | "error",
-		message: string
+	/**
+	 * Updates the connection status display based on connection state
+	 */
+	private updateConnectionStatusDisplay(
+		connectionState: { status: string; error?: string }
 	): void {
 		if (!this.connectionStatusDescEl) {
 			return
 		}
 
 		// Clear existing classes
-		this.resetConnectionStatus()
+		this.connectionStatusDescEl.removeClass("graphdb-test-success")
+		this.connectionStatusDescEl.removeClass("graphdb-test-error")
+		this.connectionStatusDescEl.removeClass("graphdb-test-testing")
 
-		// Set icon and message based on type
+		// Set icon and message based on status
 		let icon = ""
-		if (type === "success") {
-			icon = "✓ "
-			this.connectionStatusDescEl.addClass("graphdb-test-success")
-		} else if (type === "error") {
-			icon = "✗ "
-			this.connectionStatusDescEl.addClass("graphdb-test-error")
-		} else if (type === "testing") {
+		let message = ""
+
+		if (connectionState.status === "testing") {
 			icon = "⟳ "
+			message = "Testing connection..."
 			this.connectionStatusDescEl.addClass("graphdb-test-testing")
+		} else if (connectionState.status === "connected") {
+			icon = "✓ "
+			message = "Connection successful"
+			this.connectionStatusDescEl.addClass("graphdb-test-success")
+		} else if (connectionState.status === "error") {
+			icon = "✗ "
+			message = connectionState.error || "Connection failed"
+			this.connectionStatusDescEl.addClass("graphdb-test-error")
+		} else {
+			// unknown status
+			message = "Connection status unknown"
 		}
 
 		this.connectionStatusDescEl.setText(icon + message)
-	}
-
-	private async testConnection(): Promise<void> {
-		if (!this.connectionStatusDescEl) {
-			return
-		}
-
-		// Show testing state
-		this.updateStatusDisplay("testing", "Testing connection...")
-
-		// Get URI and username, using defaults if not set
-		const uri =
-			this.plugin.settings.neo4jUri || DEFAULT_SETTINGS.neo4jUri
-		const username =
-			this.plugin.settings.neo4jUsername ||
-			DEFAULT_SETTINGS.neo4jUsername
-
-		// Get password - should be available if button is enabled
-		const password = CredentialService.getPassword()
-		if (!password) {
-			this.updateStatusDisplay(
-				"error",
-				"Password required (enter password above)"
-			)
-			return
-		}
-
-		// Test connection
-		try {
-			await Neo4jService.testConnection(uri, {
-				username: username,
-				password: password,
-			})
-			this.updateStatusDisplay("success", "Connection successful!")
-		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : String(error)
-			this.updateStatusDisplay("error", `Connection failed: ${errorMessage}`)
-		}
 	}
 
 }
