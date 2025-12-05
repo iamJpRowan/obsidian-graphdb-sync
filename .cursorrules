@@ -23,7 +23,7 @@ Each development conversation follows a structured goal-oriented process:
 For each step, follow this cycle:
 
 1. **Propose** - AI suggests specific changes for the current step
-2. **Discuss** - Back and forth until approach is agreed
+2. **Discuss** - Back and forth until approach is agreed.  User will ask for clarifications and define criteria.  Agent should provide confimation of updates and answer questions.  Agent should only produce full updated plan when prompted to do so.
 3. **Implement** - User instructs AI to implement (switch to agent mode if needed)
 4. **Test** - AI prompts user to test; work through bugs/adjustments
 5. **Commit** - Once satisfied, commit the changes with appropriate semantic prefix
@@ -94,9 +94,10 @@ When the user requests to "commit" or "prepare to commit", perform a comprehensi
 ### Review Process
 
 1. **Examine all uncommitted changes** - Review git status and read all modified/new files
-2. **Evaluate against checklist** - Systematically check each item below
-3. **Present findings** - Provide a concise, high-level list of considerations (not detailed fixes)
-4. **Wait for user decision** - Do not proceed with commit until user confirms or addresses items
+2. **Run linter** - Execute linter to check for code quality issues, formatting problems, and potential errors
+3. **Evaluate against checklist** - Systematically check each item below
+4. **Present findings** - Provide a concise, high-level list of considerations (not detailed fixes)
+5. **Wait for user decision** - Do not proceed with commit until user confirms or addresses items
 
 ### Review Checklist
 
@@ -152,6 +153,21 @@ For each uncommitted change, evaluate:
 - **Single responsibility** - Verify each file has a clear, single purpose
 - **Directory structure** - Ensure files are in appropriate directories per the organization guidelines
 
+#### Documentation
+- **README updates** - Determine if changes require README.md updates:
+  - New features or functionality → Update Features/Usage sections
+  - User-facing behavior changes → Update Usage/Configuration sections
+  - New commands or settings → Document in appropriate sections
+  - Breaking changes → Update with migration notes if applicable
+
+#### Code Quality Tools
+- **Linter results** - Review linter output for:
+  - Code quality issues (unused variables, unreachable code, etc.)
+  - Formatting inconsistencies
+  - Type errors or warnings
+  - Potential bugs or anti-patterns
+  - All linter errors should be resolved before committing
+
 ### Output Format
 
 Present findings as a concise, bulleted list organized by category. Each item should be:
@@ -176,6 +192,12 @@ Example format:
 ### Styling
 - [File] uses inline styles that should move to CSS
 - [Component] could use Obsidian variable `--variable-name` instead of custom value
+
+### Documentation
+- README should be updated to document [new feature/change]
+
+### Linter
+- [File] has [specific linter error/warning] that should be resolved
 ```
 
 ### Workflow Integration
