@@ -6,80 +6,23 @@ import { CredentialService } from "../services/CredentialService"
 import { VaultAnalysisService } from "../services/VaultAnalysisService"
 import { getVaultPath, openSettings } from "../utils/obsidianApi"
 import type { MigrationProgress } from "../services/MigrationService"
-import type { AnalysisProgress, PropertyType } from "../types"
+import type { AnalysisProgress } from "../types"
 import { DEFAULT_SETTINGS } from "../types"
+import {
+	createTypeIcon,
+	getTypeName,
+} from "./helpers/propertyTypeHelpers"
+import {
+	createSampleColumn,
+	createIssueColumn,
+} from "./helpers/columnHelpers"
 
-export const STATUS_VIEW_TYPE = "graphdb-sync-status"
-
-/**
- * Gets the Lucide icon name for a property type
- */
-function getPropertyTypeIcon(
-	type: PropertyType,
-	isFileProperty?: boolean,
-	isMultiFile?: boolean
-): string {
-	if (isFileProperty) {
-		return isMultiFile ? "file-stack" : "file-text"
-	}
-	
-	switch (type) {
-		case "string":
-			return "type"
-		case "number":
-			return "hash"
-		case "boolean":
-			return "toggle-left"
-		case "date":
-			return "calendar"
-		case "array":
-			return "list"
-		case "object":
-			return "braces"
-		case "null":
-			return "circle-slash"
-		case "mixed":
-			return "shuffle"
-		default:
-			return "help-circle"
-	}
-}
-
-/**
- * Creates just the type icon
- */
-function createTypeIcon(
-	container: HTMLElement,
-	type: PropertyType,
-	isArray: boolean,
-	arrayItemType?: PropertyType,
-	isFileProperty?: boolean,
-	isMultiFile?: boolean
-): HTMLElement {
-	const iconEl = container.createSpan("graphdb-analysis-type-icon")
-	const iconType = isArray && arrayItemType ? arrayItemType : type
-	setIcon(iconEl, getPropertyTypeIcon(iconType, isFileProperty, isMultiFile))
-	return iconEl
-}
-
-/**
- * Gets the type name as a string
- */
-function getTypeName(
-	type: PropertyType,
-	isArray: boolean,
-	arrayItemType?: PropertyType
-): string {
-	if (isArray && arrayItemType) {
-		return `array<${arrayItemType}>`
-	}
-	return type
-}
+export const DASHBOARD_VIEW_TYPE = "graphdb-sync-dashboard"
 
 /**
  * View for displaying migration status and results
  */
-export class StatusView extends ItemView {
+export class DashboardView extends ItemView {
 	plugin: GraphDBSyncPlugin
 	private tabsContainer: HTMLElement | null = null
 	private tabButtonsContainer: HTMLElement | null = null
@@ -111,7 +54,7 @@ export class StatusView extends ItemView {
 	}
 
 	getViewType(): string {
-		return STATUS_VIEW_TYPE
+		return DASHBOARD_VIEW_TYPE
 	}
 
 	getDisplayText(): string {
@@ -144,7 +87,7 @@ export class StatusView extends ItemView {
 				// Update controls with latest state to ensure button is enabled correctly
 				this.updateControls()
 				
-				// Auto-run analysis when plugin is ready (only once)
+				// Auto-run analysis when plugin is ready (only once, on initial view open)
 				if (state.isReady && !this.hasRunInitialAnalysis) {
 					this.hasRunInitialAnalysis = true
 					// Run analysis in background (don't await)
@@ -168,15 +111,6 @@ export class StatusView extends ItemView {
 				this.lastMigrationState = migrationState
 				this.lastIsReady = state.isReady
 				this.updateControls()
-				
-				// Auto-run analysis when plugin becomes ready (only once)
-				if (state.isReady && !this.hasRunInitialAnalysis) {
-					this.hasRunInitialAnalysis = true
-					// Run analysis in background (don't await)
-					this.startAnalysis().catch(() => {
-						// Silently fail - analysis will be available on next open
-					})
-				}
 			}
 		})
 	}
@@ -195,7 +129,7 @@ export class StatusView extends ItemView {
 	private render(): void {
 		const { contentEl } = this
 		contentEl.empty()
-		contentEl.addClass("graphdb-sync-status-view")
+		contentEl.addClass("graphdb-sync-dashboard-view")
 
 		// Create tabs container
 		this.tabsContainer = contentEl.createDiv("graphdb-tabs-container")
@@ -361,7 +295,7 @@ export class StatusView extends ItemView {
 		const progressBar = progressBarContainer.createDiv("graphdb-progress-bar")
 		const percentage =
 			progress.total > 0 ? (progress.current / progress.total) * 100 : 0
-		progressBar.style.width = `${percentage}%`
+		progressBar.style.setProperty("--progress-width", `${percentage}%`)
 
 		// Progress text
 		const progressText = progressEl.createDiv("graphdb-progress-text")
@@ -629,7 +563,7 @@ export class StatusView extends ItemView {
 		const progressBar = progressBarContainer.createDiv("graphdb-progress-bar")
 		const percentage =
 			progress.total > 0 ? (progress.current / progress.total) * 100 : 0
-		progressBar.style.width = `${percentage}%`
+		progressBar.style.setProperty("--progress-width", `${percentage}%`)
 
 		// Progress text
 		const progressText = progressEl.createDiv("graphdb-progress-text")
@@ -908,103 +842,38 @@ export class StatusView extends ItemView {
 
 					// Sample values column (first)
 					if (hasSampleValues) {
-						const samplesColumn = collapsibleGrid.createDiv(
-							"graphdb-analysis-property-card-collapsible-column"
-						)
-						samplesColumn.createDiv({
-							text: "Sample values:",
-							cls: "graphdb-analysis-property-card-column-title",
-						})
-						const samplesList = samplesColumn.createEl("ul", {
-							cls: "graphdb-analysis-property-card-samples-list",
-						})
-						prop.sampleValues.forEach((sample) => {
-							samplesList.createEl("li", {
-								text: sample,
-								cls: "graphdb-analysis-property-card-sample-value",
-							})
-						})
+						createSampleColumn(collapsibleGrid, prop.sampleValues)
 					}
 
 					// Invalid wikilinks examples column
 					if (invalidWikilinkSamples.length > 0) {
-						const invalidColumn = collapsibleGrid.createDiv(
-							"graphdb-analysis-property-card-collapsible-column"
+						createIssueColumn(
+							collapsibleGrid,
+							"Invalid wikilinks:",
+							"alert-circle",
+							invalidWikilinkSamples
 						)
-						const invalidTitle = invalidColumn.createDiv(
-							"graphdb-analysis-property-card-column-title"
-						)
-						const invalidIcon = invalidTitle.createSpan(
-							"graphdb-analysis-property-card-column-title-icon"
-						)
-						setIcon(invalidIcon, "alert-circle")
-						invalidTitle.createSpan({
-							text: "Invalid wikilinks:",
-						})
-						const invalidList = invalidColumn.createEl("ul", {
-							cls: "graphdb-analysis-property-card-samples-list",
-						})
-						invalidWikilinkSamples.slice(0, 5).forEach((detail) => {
-							const li = invalidList.createEl("li")
-							li.createSpan({
-								text: detail.value,
-								cls: "graphdb-analysis-property-card-sample-value graphdb-analysis-property-card-sample-warning",
-							})
-						})
 					}
 
 					// Non-existent files examples column
 					if (nonExistentSamples.length > 0) {
-						const nonExistentColumn = collapsibleGrid.createDiv(
-							"graphdb-analysis-property-card-collapsible-column"
+						createIssueColumn(
+							collapsibleGrid,
+							"Non-existent files:",
+							"file-x",
+							nonExistentSamples
 						)
-						const nonExistentTitle = nonExistentColumn.createDiv(
-							"graphdb-analysis-property-card-column-title"
-						)
-						const nonExistentIcon = nonExistentTitle.createSpan(
-							"graphdb-analysis-property-card-column-title-icon"
-						)
-						setIcon(nonExistentIcon, "file-x")
-						nonExistentTitle.createSpan({
-							text: "Non-existent files:",
-						})
-						const nonExistentList = nonExistentColumn.createEl("ul", {
-							cls: "graphdb-analysis-property-card-samples-list",
-						})
-						nonExistentSamples.slice(0, 5).forEach((detail) => {
-							const li = nonExistentList.createEl("li")
-							li.createSpan({
-								text: detail.value,
-								cls: "graphdb-analysis-property-card-sample-value graphdb-analysis-property-card-sample-warning",
-							})
-						})
 					}
 
 					// Inconsistent samples column
 					if (inconsistentSamples.length > 0) {
-						const inconsistentColumn = collapsibleGrid.createDiv(
-							"graphdb-analysis-property-card-collapsible-column"
+						createIssueColumn(
+							collapsibleGrid,
+							"Inconsistent:",
+							"alert-triangle",
+							inconsistentSamples,
+							true
 						)
-						const inconsistentTitle = inconsistentColumn.createDiv(
-							"graphdb-analysis-property-card-column-title"
-						)
-						const inconsistentIcon = inconsistentTitle.createSpan(
-							"graphdb-analysis-property-card-column-title-icon graphdb-analysis-property-card-column-title-icon-warning"
-						)
-						setIcon(inconsistentIcon, "alert-triangle")
-						inconsistentTitle.createSpan({
-							text: "Inconsistent:",
-						})
-						const inconsistentList = inconsistentColumn.createEl("ul", {
-							cls: "graphdb-analysis-property-card-samples-list",
-						})
-						inconsistentSamples.slice(0, 5).forEach((sample) => {
-							const li = inconsistentList.createEl("li")
-							li.createSpan({
-								text: sample,
-								cls: "graphdb-analysis-property-card-sample-value graphdb-analysis-property-card-sample-warning",
-							})
-						})
 					}
 
 					// Toggle functionality (make entire header clickable)

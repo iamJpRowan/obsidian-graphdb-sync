@@ -20,10 +20,12 @@ Sync your Obsidian vault to a Neo4j graph database, transforming your notes into
 - **Connection management** - Configure Neo4j URI, username, and password in settings
 - **Session password storage** - Secure in-memory password storage (cleared on Obsidian close)
 - **Connection testing** - Automatic connection validation with real-time status
-- **Migration monitoring** - Status view with progress tracking and results
+- **Migration monitoring** - Dashboard view with progress tracking and results
 - **Migration controls** - Start, pause, resume, and cancel migrations
 - **Status bar integration** - Quick access to migration status and controls
 - **Last migration results** - Persistent storage of migration statistics and errors
+- **Vault analysis** - Analyze front matter properties across your vault to identify relationship candidates
+- **Property validation** - Detect invalid wikilinks, non-existent files, and inconsistent patterns
 
 ### Planned Capabilities
 
@@ -115,11 +117,19 @@ npm run build:release # Build for distribution
 
 ### Starting a Migration
 
-1. Open the **GraphDB Sync Status** view (Command Palette → "Open sync status" or click status bar icon)
+1. Open the **GraphDB Sync Dashboard** view (Command Palette → "Open sync status" or click status bar icon)
 2. Ensure connection status shows "Ready to migrate"
 3. Click **Start migration**
-4. Monitor progress in the status view
+4. Monitor progress in the dashboard view
 5. View results and any errors after completion
+
+### Analyzing Your Vault
+
+1. Open the **GraphDB Sync Dashboard** view (Command Palette → "Open analysis view" or "Open sync status")
+2. Navigate to the **Analysis** tab
+3. View property statistics, types, patterns, and validation issues
+4. Use the refresh button to re-run analysis after making changes to your vault
+5. Analysis runs automatically when the plugin is ready (first time only)
 
 ### Status Bar
 
@@ -127,7 +137,7 @@ The status bar icon provides quick access to:
 - Connection status
 - Migration progress
 - Migration controls (start, pause, resume, cancel)
-- Navigation to settings and status view
+- Navigation to settings and dashboard view
 
 Icon colors indicate state:
 - **Normal** - Ready or idle
@@ -136,8 +146,9 @@ Icon colors indicate state:
 
 ### Commands
 
-- **Open sync status** - Opens the migration status view
-- **Start migration** - Starts a new migration (opens status view if not already open)
+- **Open sync status** - Opens the dashboard view
+- **Start migration** - Starts a new migration (opens dashboard view if not already open)
+- **Open analysis view** - Opens the dashboard view to the analysis tab
 
 ## Architecture
 
@@ -153,15 +164,26 @@ src/
 │   ├── CredentialService.ts    # Session password management
 │   ├── Neo4jService.ts          # Neo4j connection testing
 │   ├── MigrationService.ts      # Migration execution
-│   └── StateService.ts          # Centralized state management
+│   ├── StateService.ts          # Centralized state management
+│   └── VaultAnalysisService.ts  # Vault front matter analysis
 ├── statusBar/               # Status bar component
 │   ├── StatusBarService.ts
 │   └── styles.css
-├── statusView/             # Status view component
-│   ├── StatusView.ts
-│   └── styles.css
+├── dashboardView/          # Dashboard view component
+│   ├── DashboardView.ts
+│   ├── dashboardView.css
+│   ├── helpers/            # Helper functions
+│   │   ├── propertyTypeHelpers.ts
+│   │   └── columnHelpers.ts
+│   └── components/         # UI components (future)
 └── utils/                   # Shared utilities
-    └── obsidianApi.ts       # Obsidian API helpers
+    ├── obsidianApi.ts       # Obsidian API helpers
+    └── propertyAnalyzer/   # Property analysis utilities
+        ├── index.ts
+        ├── typeDetection.ts
+        ├── patternDetection.ts
+        ├── validation.ts
+        └── aggregation.ts
 ```
 
 ### State Management

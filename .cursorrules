@@ -87,6 +87,106 @@ When suggesting approaches, prefer:
 - Keep the first line under 72 characters
 - Use the body for additional context when needed
 
+## Pre-Commit Review Checklist
+
+When the user requests to "commit" or "prepare to commit", perform a comprehensive review of all uncommitted changes before proceeding. Review all modified, added, and deleted files in the working directory and staging area.
+
+### Review Process
+
+1. **Examine all uncommitted changes** - Review git status and read all modified/new files
+2. **Evaluate against checklist** - Systematically check each item below
+3. **Present findings** - Provide a concise, high-level list of considerations (not detailed fixes)
+4. **Wait for user decision** - Do not proceed with commit until user confirms or addresses items
+
+### Review Checklist
+
+For each uncommitted change, evaluate:
+
+#### Architecture and Design
+- **Alternate approaches** - Are there simpler or more maintainable architectural patterns that could achieve the same functionality? Consider:
+  - Could existing Obsidian APIs or classes be leveraged instead?
+  - Are we following established patterns in the codebase?
+  - Would a different service/component structure be cleaner?
+
+#### Code Quality
+- **Cleanup opportunities** - Look for:
+  - Unused imports, variables, or functions
+  - Commented-out code that should be removed
+  - Temporary debugging code (console.logs, etc.)
+  - Dead code paths
+
+- **Complexity reduction** - Identify:
+  - Overly complex functions that could be simplified
+  - Nested conditionals that could be flattened
+  - Long parameter lists that could use objects
+  - Functions doing too many things (violating single responsibility)
+
+- **Code consolidation** - Find:
+  - Duplicate logic that could be extracted to shared utilities
+  - Similar functions that could be unified with parameters
+  - Repeated patterns that could become reusable components
+  - Redundant type definitions or constants
+
+#### Component Lifecycle
+- **Proper lifecycle management** - Verify:
+  - Event handlers are registered via `registerEvent()` for automatic cleanup
+  - Commands are registered via `addCommand()` for automatic cleanup
+  - DOM elements are properly removed when components are destroyed
+  - Subscriptions/listeners are unsubscribed on cleanup
+  - Resources (file watchers, timers, etc.) are properly released
+
+#### Styling Compliance
+- **CSS file organization** - Check:
+  - All styles are in dedicated `.css` files (no inline styles)
+  - No JavaScript-based styling (e.g., `element.style.property = value`)
+  - CSS files are appropriately located (component-level vs global)
+
+- **Obsidian CSS variables** - Verify:
+  - Obsidian CSS variables are used wherever possible (e.g., `--background-primary`, `--text-normal`, `--interactive-accent`)
+  - Custom CSS variables are only used when Obsidian variables cannot achieve the result
+  - Custom variables derive from Obsidian variables when possible
+  - Obsidian's existing CSS classes are leveraged before creating new ones
+
+#### File Organization
+- **File size** - Check if any files exceed 300 lines and suggest extraction opportunities
+- **Single responsibility** - Verify each file has a clear, single purpose
+- **Directory structure** - Ensure files are in appropriate directories per the organization guidelines
+
+### Output Format
+
+Present findings as a concise, bulleted list organized by category. Each item should be:
+- **High-level** - Focus on "what" to consider, not detailed "how" to fix
+- **Actionable** - Clear enough for the user to decide if it needs attention
+- **Prioritized** - List more important items first
+
+Example format:
+```
+## Pre-Commit Review Findings
+
+### Architecture
+- Consider extracting [specific pattern] to align with [existing pattern]
+
+### Code Quality
+- Remove unused [specific items]
+- Simplify [specific function] - currently handles [multiple concerns]
+
+### Lifecycle
+- [Component] may need explicit cleanup for [resource type]
+
+### Styling
+- [File] uses inline styles that should move to CSS
+- [Component] could use Obsidian variable `--variable-name` instead of custom value
+```
+
+### Workflow Integration
+
+This review should occur:
+- When user explicitly requests "commit" or "prepare to commit"
+- Before the final commit in the step-by-step workflow (step 5)
+- After testing is complete and user is satisfied with functionality
+
+The review does not block commits - it provides information for the user to decide whether to address items now or defer them.
+
 ## Additional Requirements and Conventions
 
 - All public methods should have JS docs

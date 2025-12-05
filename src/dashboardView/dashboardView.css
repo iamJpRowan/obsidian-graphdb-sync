@@ -1,5 +1,5 @@
-/* Status view styles */
-.graphdb-sync-status-view {
+/* Dashboard view styles */
+.graphdb-sync-dashboard-view {
 	padding: 20px;
 }
 
@@ -113,6 +113,7 @@
 
 .graphdb-progress-bar {
 	height: 100%;
+	width: var(--progress-width, 0%);
 	background-color: var(--interactive-accent);
 	transition: width 0.3s ease;
 }

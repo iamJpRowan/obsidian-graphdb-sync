@@ -5,12 +5,12 @@ import { MigrationService } from "./services/MigrationService"
 import { StateService } from "./services/StateService"
 import { StatusBarService } from "./statusBar/StatusBarService"
 import {
-	StatusView,
-	STATUS_VIEW_TYPE,
-} from "./statusView/StatusView"
+	DashboardView,
+	DASHBOARD_VIEW_TYPE,
+} from "./dashboardView/DashboardView"
 import { DEFAULT_SETTINGS, type PluginSettings } from "./types"
 
-export const VIEW_TYPE_GRAPHDB_SYNC = STATUS_VIEW_TYPE
+export const VIEW_TYPE_GRAPHDB_SYNC = DASHBOARD_VIEW_TYPE
 
 export default class GraphDBSyncPlugin extends Plugin {
 	settings: PluginSettings
@@ -38,7 +38,7 @@ export default class GraphDBSyncPlugin extends Plugin {
 		// Register view
 		this.registerView(
 			VIEW_TYPE_GRAPHDB_SYNC,
-			(leaf) => new StatusView(leaf, this)
+			(leaf) => new DashboardView(leaf, this)
 		)
 
 		// Register command to open status view
@@ -56,6 +56,15 @@ export default class GraphDBSyncPlugin extends Plugin {
 			name: "Start migration",
 			callback: async () => {
 				await this.startMigrationInternal()
+			},
+		})
+
+		// Register command to open analysis view
+		this.addCommand({
+			id: "open-analysis-view",
+			name: "Open analysis view",
+			callback: async () => {
+				await this.activateViewInternal()
 			},
 		})
 
@@ -131,11 +140,12 @@ export default class GraphDBSyncPlugin extends Plugin {
 		// Get the view instance and trigger migration
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_GRAPHDB_SYNC)
 		if (leaves.length > 0) {
-			const view = leaves[0].view as StatusView
+			const view = leaves[0].view as DashboardView
 			// Call a public method on the view to start migration
 			await view.startMigration()
 		}
 	}
+
 
 	/**
 	 * Public method for status bar service to activate view
