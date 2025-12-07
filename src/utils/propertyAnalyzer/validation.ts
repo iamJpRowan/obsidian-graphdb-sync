@@ -164,7 +164,7 @@ export function validateFileProperty(
 
 	// Check for inconsistent patterns (not all values are wikilinks)
 	const totalValuesChecked = isArray
-		? nonNullValues.reduce(
+		? nonNullValues.reduce<number>(
 				(sum, val) =>
 					sum + (Array.isArray(val) ? val.length : 0),
 				0

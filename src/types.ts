@@ -109,4 +109,4 @@ export type FrontMatterValue =
 	| boolean
 	| null
 	| FrontMatterValue[]
-	| Record<string, FrontMatterValue>
+	| { [key: string]: FrontMatterValue }
