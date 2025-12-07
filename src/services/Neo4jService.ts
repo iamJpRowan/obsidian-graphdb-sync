@@ -1,5 +1,5 @@
 import neo4j, { Driver } from "neo4j-driver"
-import type { Neo4jCredentials } from "../types"
+import type { Neo4jCredentials, RelationshipTypeValidation } from "../types"
 
 /**
  * Service for managing Neo4j connections
@@ -49,6 +49,58 @@ export class Neo4jService {
 				await driver.close()
 			}
 		}
+	}
+
+	/**
+	 * Validates a relationship type string
+	 * Relationship types must be UPPER_SNAKE_CASE: start with uppercase letter,
+	 * contain only uppercase letters, numbers, and underscores
+	 * @param type - The relationship type to validate
+	 * @returns Validation result with isValid flag and optional error message
+	 */
+	static validateRelationshipType(type: string): RelationshipTypeValidation {
+		if (!type || type.trim().length === 0) {
+			return {
+				isValid: false,
+				error: "Relationship type cannot be empty",
+			}
+		}
+
+		const trimmed = type.trim()
+
+		// Must start with uppercase letter
+		if (!/^[A-Z]/.test(trimmed)) {
+			return {
+				isValid: false,
+				error: "Must start with an uppercase letter",
+			}
+		}
+
+		// Can only contain uppercase letters, numbers, and underscores
+		if (!/^[A-Z0-9_]+$/.test(trimmed)) {
+			return {
+				isValid: false,
+				error: "Can only contain uppercase letters, numbers, and underscores",
+			}
+		}
+
+		// Cannot contain consecutive underscores
+		if (/__/.test(trimmed)) {
+			return {
+				isValid: false,
+				error: "Cannot contain consecutive underscores",
+			}
+		}
+
+		// Cannot start or end with underscore
+		if (trimmed.startsWith("_") || trimmed.endsWith("_")) {
+			return {
+				isValid: false,
+				error: "Cannot start or end with underscore",
+			}
+		}
+
+		return { isValid: true }
 	}
 }
 

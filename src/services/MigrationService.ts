@@ -1,7 +1,7 @@
 import { readdir } from "fs/promises"
 import { join } from "path"
 import neo4j, { Driver, Session, Transaction } from "neo4j-driver"
-import type { Neo4jCredentials } from "../types"
+import type { Neo4jCredentials, RelationshipError } from "../types"
 import { StateService } from "./StateService"
 
 export interface MigrationProgress {
@@ -16,9 +16,13 @@ export interface MigrationResult {
 	totalFiles: number
 	successCount: number
 	errorCount: number
-	errors: Array<{ file: string; error: string }>
+	errors: Array<{ file: string; error: string } | RelationshipError>
 	duration: number
 	message?: string
+	relationshipStats?: {
+		successCount: number
+		errorCount: number
+	}
 }
 
 export type ProgressCallback = (progress: MigrationProgress) => void

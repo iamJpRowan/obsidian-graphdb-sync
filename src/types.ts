@@ -1,7 +1,47 @@
+// Property mapping configuration
+export type PropertyMappingType = "relationship" | "node_property"
+
+export type RelationshipDirection = "outgoing" | "incoming"
+
+// Relationship mapping configuration
+export interface RelationshipMappingConfig {
+	relationshipType: string // Neo4j relationship type (e.g., "RELATES_TO", "REFERENCES")
+	direction: RelationshipDirection
+}
+
+// Node property mapping configuration (structure for future implementation)
+export interface NodePropertyMappingConfig {
+	neo4jPropertyName: string
+	neo4jType: string // Neo4j property type (e.g., "String", "Integer", "Float", "Boolean", "Date", etc.)
+}
+
+// Property mapping configuration (discriminated union)
+export interface PropertyMapping {
+	propertyName: string
+	mappingType: PropertyMappingType
+	config: RelationshipMappingConfig | NodePropertyMappingConfig
+	enabled: boolean
+}
+
+// Relationship creation error details
+export interface RelationshipError {
+	file: string // Source file path
+	property: string // Property name that failed
+	target: string // Target wikilink that failed
+	error: string // Error message
+}
+
+// Relationship type validation result
+export interface RelationshipTypeValidation {
+	isValid: boolean
+	error?: string
+}
+
 export interface PluginSettings {
 	neo4jUri: string
 	neo4jUsername: string
 	// Password is stored in session only (cleared when Obsidian closes)
+	propertyMappings?: Record<string, PropertyMapping>
 	lastMigrationResult?: {
 		success: boolean
 		totalFiles: number
@@ -23,6 +63,7 @@ export interface Neo4jCredentials {
 export const DEFAULT_SETTINGS: PluginSettings = {
 	neo4jUri: "neo4j://localhost:7687",
 	neo4jUsername: "neo4j",
+	propertyMappings: {},
 }
 
 // Property type detection
