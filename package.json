@@ -4,7 +4,7 @@
   "description": "Obsidian plugin to sync vault files and relationships to a graph database",
   "main": "main.js",
   "scripts": {
-    "dev": "node esbuild.config.mjs",
+    "dev": "node dev.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "build:release": "tsc -noEmit -skipLibCheck && RELEASE_BUILD=true node esbuild.config.mjs production",
     "lint": "eslint .",

@@ -20,6 +20,7 @@ const pluginId = manifest.id
 // Detect build modes
 const prod = process.argv[2] === "production"
 const isReleaseBuild = process.env.RELEASE_BUILD === "true"
+const isQuiet = process.env.QUIET === "true" || process.argv.includes("--quiet")
 
 // Determine output directory
 // For release builds, output to ./build
@@ -80,9 +81,13 @@ async function bundleCssFiles() {
     // Write the bundled CSS to the output directory
     await fs.writeFile(path.join(outDir, "styles.css"), mainCssContent)
 
-    console.info("CSS files bundled successfully")
+    if (!isQuiet) {
+      console.info("CSS files bundled successfully")
+    }
   } catch (error) {
-    console.error("Error bundling CSS files:", error)
+    if (!isQuiet) {
+      console.error("Error bundling CSS files:", error)
+    }
   }
 }
 
@@ -98,9 +103,13 @@ async function copyPluginFiles() {
     // Bundle CSS files
     await bundleCssFiles()
 
-    console.info("Plugin files copied successfully")
+    if (!isQuiet) {
+      console.info("Plugin files copied successfully")
+    }
   } catch (error) {
-    console.error("Error copying plugin files:", error)
+    if (!isQuiet) {
+      console.error("Error copying plugin files:", error)
+    }
   }
 }
 
@@ -134,7 +143,7 @@ const context = await esbuild.context({
   ],
   format: "cjs",
   target: "es2018",
-  logLevel: "info",
+  logLevel: isQuiet ? "silent" : "info",
   sourcemap: prod ? false : "inline",
   treeShaking: true,
   outfile: path.join(outDir, "main.js"),

@@ -31,6 +31,7 @@ export default tseslint.config(
 		ignores: [
 			"main.js",
 			"*.config.mjs",
+			"dev.mjs",
 			"version-bump.mjs",
 			"node_modules/**",
 			".obsidian/**",
