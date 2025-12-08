@@ -26,6 +26,7 @@ Sync your Obsidian vault to a Neo4j graph database, transforming your notes into
 - **Last migration results** - Persistent storage of migration statistics and errors
 - **Vault analysis** - Analyze front matter properties across your vault to identify relationship candidates
 - **Property validation** - Detect invalid wikilinks, non-existent files, and inconsistent patterns
+- **Property mapping configuration** - Configure how front matter properties map to Neo4j relationships or node properties
 
 ### Planned Capabilities
 
@@ -126,10 +127,27 @@ npm run build:release # Build for distribution
 ### Analyzing Your Vault
 
 1. Open the **GraphDB Sync Dashboard** view (Command Palette → "Open analysis view" or "Open sync status")
-2. Navigate to the **Analysis** tab
+2. Navigate to the **Configuration** tab (active by default)
 3. View property statistics, types, patterns, and validation issues
 4. Use the refresh button to re-run analysis after making changes to your vault
 5. Analysis runs automatically when the plugin is ready (first time only)
+
+### Configuring Property Mappings
+
+Property mappings define how front matter properties create relationships in the graph database:
+
+1. Open the **GraphDB Sync Dashboard** view and navigate to the **Configuration** tab
+2. For each property, expand the property card to view configuration options
+3. Select a **Mapping type**:
+   - **None** - No mapping (removes any existing configuration)
+   - **Relationship** - Creates a typed relationship between nodes
+   - **Node property** - Maps to a node property (coming soon)
+4. For **Relationship** mappings:
+   - Enter a relationship type name (must be UPPER_SNAKE_CASE, e.g., `RELATES_TO`, `REFERENCES`)
+   - Select direction: **Outgoing** (source file → property value) or **Incoming** (property value → source file)
+   - Enable the mapping toggle to activate the configuration
+5. Configurations are saved automatically as you type (debounced)
+6. Selecting "None" immediately removes the mapping from settings
 
 ### Status Bar
 

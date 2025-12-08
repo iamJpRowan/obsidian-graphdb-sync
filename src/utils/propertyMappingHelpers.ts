@@ -47,6 +47,7 @@ export function getRelationshipConfig(
 	if (
 		mapping?.mappingType === "relationship" &&
 		mapping.enabled &&
+		mapping.config &&
 		"relationshipType" in mapping.config
 	) {
 		return mapping.config as RelationshipMappingConfig

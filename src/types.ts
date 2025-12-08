@@ -18,8 +18,8 @@ export interface NodePropertyMappingConfig {
 // Property mapping configuration (discriminated union)
 export interface PropertyMapping {
 	propertyName: string
-	mappingType: PropertyMappingType
-	config: RelationshipMappingConfig | NodePropertyMappingConfig
+	mappingType?: PropertyMappingType // Optional - no type selected by default
+	config?: RelationshipMappingConfig | NodePropertyMappingConfig // Optional when no mappingType
 	enabled: boolean
 }
 

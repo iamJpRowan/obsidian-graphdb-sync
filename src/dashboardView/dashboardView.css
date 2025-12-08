@@ -384,16 +384,107 @@
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+.graphdb-analysis-property-card-clickable {
+	cursor: pointer;
+}
+
+.graphdb-analysis-property-card-clickable:hover {
+	background-color: var(--background-secondary);
+}
+
 .graphdb-analysis-property-card-warning {
 	border-left-color: var(--text-warning, #f59e0b);
 }
 
 .graphdb-analysis-property-card-header {
 	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 8px;
+}
+
+.graphdb-analysis-property-card-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.graphdb-analysis-property-card-header-clickable {
+	cursor: pointer;
+}
+
+.graphdb-analysis-property-card-header-clickable:hover {
+	background-color: var(--background-secondary);
+	border-radius: 4px;
+	padding: 2px 4px;
+	margin: -2px -4px;
+}
+
+.graphdb-analysis-property-card-header-left {
+	display: flex;
 	align-items: center;
 	gap: 8px;
-	margin-bottom: 8px;
-	flex-wrap: wrap;
+	flex: 1;
+	min-width: 0;
+}
+
+.graphdb-analysis-property-card-header-right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.graphdb-analysis-property-card-expand-icon {
+	display: inline-flex;
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	transition: color 0.2s ease;
+}
+
+.graphdb-analysis-property-card-preview-row-header {
+	margin-top: 4px;
+	padding-left: 24px; /* Align with property name (icon + spacing) */
+}
+
+.graphdb-analysis-property-card-preview {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-style: italic;
+}
+
+.graphdb-analysis-property-card-enable-toggle {
+	display: flex;
+	align-items: center;
+}
+
+/* Compact enable toggle styling */
+.graphdb-enable-toggle-compact {
+	margin: 0;
+	padding: 0;
+	min-height: auto;
+}
+
+.graphdb-enable-toggle-compact .setting-item-control {
+	padding: 0;
+}
+
+.graphdb-enable-toggle-disabled {
+	cursor: not-allowed !important;
+	opacity: 0.6;
+}
+
+.graphdb-enable-toggle-disabled .setting-item-control {
+	cursor: not-allowed !important;
+}
+
+.graphdb-enable-toggle-disabled input[type='checkbox'] {
+	cursor: not-allowed !important;
 }
 
 .graphdb-analysis-property-card-name {
@@ -430,8 +521,51 @@
 .graphdb-analysis-property-card-body {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 12px;
 	font-size: 0.9em;
+	margin-top: 8px;
+}
+
+.graphdb-analysis-property-card-body-hidden {
+	display: none;
+}
+
+.graphdb-analysis-property-card-metadata-row {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	flex-wrap: wrap;
+	padding-bottom: 8px;
+	margin-bottom: 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.graphdb-analysis-property-card-metadata-item {
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+.graphdb-analysis-property-card-metadata-count-container {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+}
+
+.graphdb-analysis-property-card-metadata-issues {
+	display: inline-flex;
+	align-items: center;
+}
+
+.graphdb-analysis-property-card-metadata-issues-icon {
+	display: inline-flex;
+	width: 16px;
+	height: 16px;
+	color: var(--text-warning, #f59e0b);
+}
+
+.graphdb-analysis-property-card-metadata-count {
+	font-weight: 500;
 }
 
 .graphdb-analysis-property-card-pattern {
@@ -612,6 +746,197 @@
 
 .graphdb-analysis-property-card-collapsible-content {
 	margin-top: 8px;
+}
+
+/* Configuration section */
+.graphdb-analysis-property-card-config-section {
+	margin-bottom: 16px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.graphdb-analysis-property-card-config-status {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	margin-left: 8px;
+	font-style: italic;
+}
+
+/* Compact inline form row */
+.graphdb-config-inline-row {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	flex-wrap: wrap;
+}
+
+.graphdb-config-inline-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.graphdb-config-label {
+	font-size: 0.9em;
+	color: var(--text-normal);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.graphdb-config-toggle-container {
+	display: flex;
+	align-items: center;
+}
+
+.graphdb-config-toggle {
+	width: 18px;
+	height: 18px;
+	cursor: pointer;
+	accent-color: var(--interactive-accent);
+}
+
+.graphdb-config-dropdown {
+	padding: 4px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9em;
+	cursor: pointer;
+	min-width: 120px;
+}
+
+.graphdb-config-dropdown:hover {
+	border-color: var(--interactive-accent);
+}
+
+.graphdb-config-dropdown:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+/* Relationship field */
+.graphdb-config-relationship-field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.graphdb-config-relationship-input-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.graphdb-config-relationship-name-container {
+	display: flex;
+	align-items: center;
+	flex: 1;
+	min-width: 200px;
+}
+
+.graphdb-config-relationship-name-input {
+	flex: 1;
+	padding: 4px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9em;
+	font-family: var(--font-monospace);
+}
+
+.graphdb-config-relationship-name-input:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+	border-color: var(--interactive-accent);
+}
+
+.graphdb-config-relationship-name-input:invalid {
+	border-color: var(--text-error);
+}
+
+.graphdb-config-error-row {
+	margin-top: 4px;
+}
+
+.graphdb-config-error-container {
+	min-height: 20px;
+}
+
+.graphdb-config-error-text {
+	font-size: 0.85em;
+	color: var(--text-error);
+	display: block;
+}
+
+.graphdb-config-relationship-direction-container {
+	display: flex;
+	align-items: center;
+	margin-left: 8px;
+}
+
+.graphdb-config-relationship-direction-button {
+	padding: 4px 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-secondary);
+	color: var(--text-normal);
+	font-size: 0.9em;
+	cursor: pointer;
+	transition: background-color 0.2s ease, border-color 0.2s ease;
+	white-space: nowrap;
+}
+
+.graphdb-config-relationship-direction-button:hover {
+	background-color: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.graphdb-config-relationship-direction-button:active {
+	background-color: var(--background-modifier-active);
+}
+
+.graphdb-config-helper-text {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	margin-top: 4px;
+	margin-bottom: 8px;
+}
+
+.graphdb-config-node-property-field {
+	margin-top: 12px;
+}
+
+.graphdb-config-coming-soon {
+	padding: 16px;
+	background-color: var(--background-secondary);
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+	text-align: center;
+}
+
+.graphdb-config-coming-soon-text {
+	display: block;
+	font-size: 0.95em;
+	font-weight: 500;
+	color: var(--text-normal);
+	margin-bottom: 4px;
+}
+
+.graphdb-config-coming-soon-description {
+	display: block;
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+/* Samples section */
+.graphdb-analysis-property-card-samples-section {
+	margin-top: 16px;
 }
 
 .graphdb-analysis-property-card-collapsible-hidden {
