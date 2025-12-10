@@ -4,7 +4,7 @@ import { MigrationService } from "../../services/MigrationService"
 import { StateService } from "../../services/StateService"
 import { CredentialService } from "../../services/CredentialService"
 import { getVaultPath, openSettings } from "../../utils/obsidianApi"
-import { DEFAULT_SETTINGS } from "../../types"
+import { DEFAULT_SETTINGS, type RelationshipError } from "../../types"
 import type { MigrationProgress } from "../../services/MigrationService"
 
 /**
@@ -126,7 +126,20 @@ export class MigrationTab {
 			progressText.setText("Scanning for markdown files...")
 		} else if (progress.status === "connecting") {
 			progressText.setText("Connecting to Neo4j...")
+		} else if (progress.status === "creating_nodes") {
+			progressText.setText(
+				`Creating nodes: ${progress.current}/${progress.total} files${
+					progress.currentFile ? ` - ${progress.currentFile}` : ""
+				}`
+			)
+		} else if (progress.status === "creating_relationships") {
+			progressText.setText(
+				`Creating relationships: ${progress.current}/${progress.total} files${
+					progress.currentFile ? ` - ${progress.currentFile}` : ""
+				}`
+			)
 		} else if (progress.status === "migrating") {
+			// Fallback for old status
 			progressText.setText(
 				`Migrating: ${progress.current}/${progress.total} files${
 					progress.currentFile ? ` - ${progress.currentFile}` : ""
@@ -182,6 +195,20 @@ export class MigrationTab {
 				cls: "graphdb-results-error-count",
 			})
 		}
+		
+		// Relationship statistics (if available)
+		if (lastResult.relationshipStats) {
+			stats.createDiv({
+				text: `Relationships created: ${lastResult.relationshipStats.successCount}`,
+			})
+			if (lastResult.relationshipStats.errorCount > 0) {
+				stats.createDiv({
+					text: `Relationship errors: ${lastResult.relationshipStats.errorCount}`,
+					cls: "graphdb-results-error-count",
+				})
+			}
+		}
+		
 		stats.createDiv({
 			text: `Duration: ${(lastResult.duration / 1000).toFixed(2)}s`,
 		})
@@ -203,14 +230,33 @@ export class MigrationTab {
 			const errorsList = errorsEl.createDiv("graphdb-results-errors-list")
 			lastResult.errors.slice(0, 10).forEach((error) => {
 				const errorItem = errorsList.createDiv("graphdb-results-error-item")
-				errorItem.createSpan({
-					text: error.file,
-					cls: "graphdb-results-error-file",
-				})
-				errorItem.createSpan({
-					text: error.error,
-					cls: "graphdb-results-error-message",
-				})
+				
+				// Type guard to check if this is a RelationshipError
+				const isRelationshipError = (err: { file: string; error: string } | RelationshipError): err is RelationshipError => {
+					return "property" in err && "target" in err
+				}
+				
+				if (isRelationshipError(error)) {
+					// Relationship error
+					errorItem.createSpan({
+						text: `${error.file} (${error.property} → ${error.target})`,
+						cls: "graphdb-results-error-file",
+					})
+					errorItem.createSpan({
+						text: error.error,
+						cls: "graphdb-results-error-message",
+					})
+				} else {
+					// Node creation error
+					errorItem.createSpan({
+						text: error.file,
+						cls: "graphdb-results-error-file",
+					})
+					errorItem.createSpan({
+						text: error.error,
+						cls: "graphdb-results-error-message",
+					})
+				}
 			})
 			if (lastResult.errors.length > 10) {
 				errorsList.createDiv({
@@ -288,6 +334,18 @@ export class MigrationTab {
 				await this.startMigration()
 			})
 
+			// Create relationships only button
+			const createRelationshipsBtn = controls.createEl("button", {
+				text: "Create relationships only",
+			})
+			const hasPropertyMappings = this.plugin.settings.propertyMappings && Object.keys(this.plugin.settings.propertyMappings).length > 0
+			createRelationshipsBtn.disabled = !state.isReady || !hasPropertyMappings
+			createRelationshipsBtn.addEventListener("click", async (evt) => {
+				evt.preventDefault()
+				evt.stopPropagation()
+				await this.startRelationshipCreation()
+			})
+
 			// Settings button
 			const settingsBtn = controls.createEl("button", {
 				text: "Open settings",
@@ -295,6 +353,65 @@ export class MigrationTab {
 			settingsBtn.addEventListener("click", () => {
 				openSettings(this.app)
 			})
+		}
+	}
+
+	/**
+	 * Starts relationship creation only (skips node creation)
+	 */
+	async startRelationshipCreation(): Promise<void> {
+		if (MigrationService.isRunning()) {
+			new Notice("Migration already in progress")
+			return
+		}
+
+		const password = CredentialService.getPassword()
+		if (!password) {
+			new Notice("Password required - set password in settings")
+			return
+		}
+
+		const uri =
+			this.plugin.settings.neo4jUri || DEFAULT_SETTINGS.neo4jUri
+		const username =
+			this.plugin.settings.neo4jUsername || DEFAULT_SETTINGS.neo4jUsername
+		const vaultPath = getVaultPath(this.app)
+
+		try {
+			const result = await MigrationService.createRelationshipsOnly(
+				vaultPath,
+				uri,
+				{ username, password },
+				() => {
+					// Progress updates are handled via StateService subscriptions
+				},
+				this.app,
+				this.plugin.settings
+			)
+
+			// Save result to settings
+			this.plugin.settings.lastMigrationResult = {
+				...result,
+				timestamp: Date.now(),
+			}
+			await this.plugin.saveSettings()
+
+			// Update display
+			this.updateResults()
+
+			if (result.success) {
+				let noticeText = `Relationships created: ${result.relationshipStats?.successCount || 0}`
+				if (result.relationshipStats?.errorCount && result.relationshipStats.errorCount > 0) {
+					noticeText += ` (${result.relationshipStats.errorCount} errors)`
+				}
+				new Notice(noticeText)
+			} else {
+				new Notice(`Relationship creation failed: ${result.message || "Unknown error"}`)
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error)
+			new Notice(`Relationship creation failed: ${errorMessage}`)
 		}
 	}
 
@@ -326,7 +443,9 @@ export class MigrationTab {
 				{ username, password },
 				() => {
 					// Progress updates are handled via StateService subscriptions
-				}
+				},
+				this.app,
+				this.plugin.settings
 			)
 
 			// Save result to settings
@@ -340,9 +459,14 @@ export class MigrationTab {
 			this.updateResults()
 
 			if (result.success) {
-				new Notice(
-					`Migration completed: ${result.successCount}/${result.totalFiles} files`
-				)
+				let noticeText = `Migration completed: ${result.successCount}/${result.totalFiles} files`
+				if (result.relationshipStats) {
+					noticeText += `, ${result.relationshipStats.successCount} relationships`
+					if (result.relationshipStats.errorCount > 0) {
+						noticeText += ` (${result.relationshipStats.errorCount} errors)`
+					}
+				}
+				new Notice(noticeText)
 			} else {
 				new Notice(`Migration failed: ${result.message || "Unknown error"}`)
 			}

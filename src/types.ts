@@ -1,34 +1,29 @@
 // Property mapping configuration
-export type PropertyMappingType = "relationship" | "node_property"
-
-export type RelationshipDirection = "outgoing" | "incoming"
-
-// Relationship mapping configuration
 export interface RelationshipMappingConfig {
-	relationshipType: string // Neo4j relationship type (e.g., "RELATES_TO", "REFERENCES")
-	direction: RelationshipDirection
+	relationshipType: string
+	direction: "outgoing" | "incoming"
 }
 
-// Node property mapping configuration (structure for future implementation)
+// Node property mapping configuration (placeholder for future implementation)
 export interface NodePropertyMappingConfig {
-	neo4jPropertyName: string
-	neo4jType: string // Neo4j property type (e.g., "String", "Integer", "Float", "Boolean", "Date", etc.)
+	// TODO: Define structure when node property feature is implemented
+	[key: string]: unknown
 }
 
-// Property mapping configuration (discriminated union)
+// Property mapping for a single property
 export interface PropertyMapping {
 	propertyName: string
-	mappingType?: PropertyMappingType // Optional - no type selected by default
-	config?: RelationshipMappingConfig | NodePropertyMappingConfig // Optional when no mappingType
+	mappingType?: "relationship" | "node_property"
+	config?: RelationshipMappingConfig | NodePropertyMappingConfig
 	enabled: boolean
 }
 
-// Relationship creation error details
+// Relationship error for detailed error reporting
 export interface RelationshipError {
-	file: string // Source file path
-	property: string // Property name that failed
-	target: string // Target wikilink that failed
-	error: string // Error message
+	file: string
+	property: string
+	target: string
+	error: string
 }
 
 // Relationship type validation result
@@ -47,9 +42,13 @@ export interface PluginSettings {
 		totalFiles: number
 		successCount: number
 		errorCount: number
-		errors: Array<{ file: string; error: string }>
+		errors: Array<{ file: string; error: string } | RelationshipError>
 		duration: number
 		message?: string
+		relationshipStats?: {
+			successCount: number
+			errorCount: number
+		}
 		timestamp: number
 	}
 	lastAnalysisResult?: VaultAnalysisResult
@@ -63,7 +62,6 @@ export interface Neo4jCredentials {
 export const DEFAULT_SETTINGS: PluginSettings = {
 	neo4jUri: "neo4j://localhost:7687",
 	neo4jUsername: "neo4j",
-	propertyMappings: {},
 }
 
 // Property type detection
