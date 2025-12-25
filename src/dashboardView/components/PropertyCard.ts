@@ -1,6 +1,11 @@
-import { setIcon, Setting } from "obsidian"
+import { setIcon, Setting, Component } from "obsidian"
 import type GraphDBSyncPlugin from "../../main"
-import type { PropertyStats, PropertyMapping, RelationshipMappingConfig } from "../../types"
+import type {
+	PropertyStats,
+	PropertyMapping,
+	RelationshipMappingConfig,
+	PropertyErrorStats,
+} from "../../types"
 import { getPropertyMapping } from "../../utils/propertyMappingHelpers"
 import { createTypeIcon, getTypeName } from "../helpers/propertyTypeHelpers"
 import { createSampleColumn, createIssueColumn } from "../helpers/columnHelpers"
@@ -30,6 +35,9 @@ export class PropertyCard {
 	private debounceTimer: NodeJS.Timeout | null = null
 	private setDebounceTimer: ((timer: NodeJS.Timeout) => void) | null = null
 	private clearDebounceTimer: (() => void) | null = null
+	private errorSection: HTMLElement | null = null
+	private errorSectionExpanded: boolean = false
+	private component: Component
 
 	constructor(
 		container: HTMLElement,
@@ -41,6 +49,8 @@ export class PropertyCard {
 		this.plugin = plugin
 		this.prop = prop
 		this.propertyCard = container.createDiv("graphdb-analysis-property-card")
+		this.component = new Component()
+		this.component.load()
 		this.setupMapping()
 		this.render(onDebounceTimerSet, onDebounceTimerClear)
 	}
@@ -93,8 +103,10 @@ export class PropertyCard {
 
 		this.renderMetadataRow(hasValidationIssues)
 		this.renderHeaderRow()
+		this.renderStatusIndicator()
 		this.renderPreview()
 		this.renderCardBody(onDebounceTimerSet, onDebounceTimerClear)
+		this.renderErrorSection()
 	}
 
 	/**
@@ -640,6 +652,194 @@ export class PropertyCard {
 	}
 
 	/**
+	 * Gets property-level error statistics from last migration result
+	 */
+	private getPropertyErrorStats(): PropertyErrorStats | null {
+		const lastResult = this.plugin.settings.lastMigrationResult
+		if (!lastResult || !lastResult.propertyStats) {
+			return null
+		}
+		return lastResult.propertyStats[this.prop.name] || null
+	}
+
+	/**
+	 * Renders status indicator (checkmark or error badge) in header
+	 */
+	private renderStatusIndicator(): void {
+		const stats = this.getPropertyErrorStats()
+		if (!stats) {
+			// No migration data for this property
+			return
+		}
+
+		const statusContainer = this.cardHeader.createDiv(
+			"graphdb-analysis-property-card-status"
+		)
+
+		if (stats.errorCount === 0 && stats.successCount > 0) {
+			// 100% success - show green checkmark
+			const checkIcon = statusContainer.createSpan(
+				"graphdb-analysis-property-card-status-check"
+			)
+			setIcon(checkIcon, "check-circle")
+			checkIcon.setAttribute("title", "All operations successful")
+		} else if (stats.errorCount > 0) {
+			// Errors exist - show error badge with count
+			const errorBadge = statusContainer.createDiv(
+				"graphdb-analysis-property-card-status-error"
+			)
+			const errorIcon = errorBadge.createSpan(
+				"graphdb-analysis-property-card-status-error-icon"
+			)
+			setIcon(errorIcon, "alert-circle")
+			const errorCount = errorBadge.createSpan(
+				"graphdb-analysis-property-card-status-error-count"
+			)
+			errorCount.setText(`${stats.errorCount}`)
+			errorBadge.setAttribute(
+				"title",
+				`${stats.errorCount} error${stats.errorCount === 1 ? "" : "s"}`
+			)
+		}
+	}
+
+	/**
+	 * Renders expandable error section in card body
+	 */
+	private renderErrorSection(): void {
+		const stats = this.getPropertyErrorStats()
+		if (!stats || stats.errorCount === 0) {
+			// No errors to display
+			return
+		}
+
+		const errorSectionContainer = this.cardBody.createDiv(
+			"graphdb-analysis-property-card-error-section"
+		)
+
+		// Error section header (clickable to expand/collapse)
+		const errorHeader = errorSectionContainer.createDiv(
+			"graphdb-analysis-property-card-error-header"
+		)
+		const errorHeaderIcon = errorHeader.createSpan(
+			"graphdb-analysis-property-card-error-header-icon"
+		)
+		setIcon(errorHeaderIcon, "chevron-right")
+		errorHeader.createSpan({
+			text: `Errors (${stats.errorCount})`,
+			cls: "graphdb-analysis-property-card-error-header-text",
+		})
+
+		// Error list (collapsed by default)
+		this.errorSection = errorSectionContainer.createDiv(
+			"graphdb-analysis-property-card-error-list"
+		)
+		this.errorSection.addClass("graphdb-analysis-property-card-error-list-hidden")
+
+		// Populate error list
+		for (const fileError of stats.fileErrors) {
+			const errorItem = this.errorSection.createDiv(
+				"graphdb-analysis-property-card-error-item"
+			)
+
+			// File link
+			const fileLinkContainer = errorItem.createDiv(
+				"graphdb-analysis-property-card-error-file"
+			)
+			this.createFileLink(
+				fileLinkContainer,
+				fileError.file,
+				fileError.file
+			)
+
+			// Error message
+			const errorMessage = errorItem.createDiv(
+				"graphdb-analysis-property-card-error-message"
+			)
+			errorMessage.setText(fileError.error)
+
+			// Target information (for relationship errors)
+			if ("target" in fileError && fileError.target) {
+				const targetInfo = errorItem.createDiv(
+					"graphdb-analysis-property-card-error-target"
+				)
+				targetInfo.createSpan({
+					text: "Target: ",
+					cls: "graphdb-analysis-property-card-error-target-label",
+				})
+				this.createFileLink(
+					targetInfo,
+					fileError.target,
+					fileError.target
+				)
+			}
+		}
+
+		// Toggle expand/collapse on header click
+		errorHeader.addEventListener("click", () => {
+			this.errorSectionExpanded = !this.errorSectionExpanded
+			if (this.errorSectionExpanded) {
+				this.errorSection?.removeClass("graphdb-analysis-property-card-error-list-hidden")
+				setIcon(errorHeaderIcon, "chevron-down")
+			} else {
+				this.errorSection?.addClass("graphdb-analysis-property-card-error-list-hidden")
+				setIcon(errorHeaderIcon, "chevron-right")
+			}
+		})
+
+		errorHeader.addClass("graphdb-analysis-property-card-error-header-clickable")
+	}
+
+	/**
+	 * Creates an Obsidian internal file link with hover card support
+	 */
+	private createFileLink(container: HTMLElement, filePath: string, displayText: string): void {
+		// Check if file exists
+		const file = this.plugin.app.vault.getAbstractFileByPath(filePath)
+		const fileExists = file !== null
+
+		if (fileExists) {
+			// Create internal link with hover card support
+			const link = container.createEl("a", {
+				text: displayText,
+				cls: "internal-link",
+				attr: {
+					"data-href": filePath,
+					href: filePath,
+				},
+			})
+
+			// Register hover link event
+			this.component.registerDomEvent(link, "mouseover", (event: MouseEvent) => {
+				event.preventDefault()
+				this.plugin.app.workspace.trigger("hover-link", {
+					event,
+					source: "graphdb-sync",
+					hoverParent: { hoverPopover: null },
+					targetEl: event.currentTarget,
+					linktext: filePath,
+					sourcePath: "",
+				})
+			})
+
+			// Open file on click
+			this.component.registerDomEvent(link, "click", async (event: MouseEvent) => {
+				event.preventDefault()
+				const targetFile = this.plugin.app.vault.getAbstractFileByPath(filePath)
+				if (targetFile) {
+					await this.plugin.app.workspace.openLinkText(filePath, "", true)
+				}
+			})
+		} else {
+			// File doesn't exist - show as text only
+			container.createSpan({
+				text: displayText,
+				cls: "graphdb-analysis-property-card-error-file-missing",
+			})
+		}
+	}
+
+	/**
 	 * Cleanup method for when card is removed
 	 */
 	destroy(): void {
@@ -649,6 +849,7 @@ export class PropertyCard {
 		if (this.clearDebounceTimer) {
 			this.clearDebounceTimer()
 		}
+		this.component.unload()
 		this.cleanupRelationshipField()
 	}
 }

@@ -18,7 +18,7 @@ export interface PropertyMapping {
 	enabled: boolean
 }
 
-// Relationship error for detailed error reporting
+// Relationship error for detailed error reporting (deprecated - use RelationshipCreationError)
 export interface RelationshipError {
 	file: string
 	property: string
@@ -32,25 +32,87 @@ export interface RelationshipTypeValidation {
 	error?: string
 }
 
+// Error type categories for error classification
+export type ErrorType =
+	| "SOURCE_NODE_MISSING" // Source node doesn't exist when creating relationships
+	| "TARGET_NODE_FAILURE" // Target node creation failures
+	| "QUERY_EXECUTION" // Neo4j query execution errors
+	| "VALIDATION" // Validation failures (empty relationship type, invalid format)
+	| "TRANSACTION" // Transaction commit failures
+	| "NETWORK" // Network/connection errors
+	| "INVALID_TYPE" // Invalid property value types
+	| "UNKNOWN" // Catch-all for unclassified errors
+
+// Node creation error
+export interface NodeCreationError {
+	file: string // Relative file path
+	error: string // Error message
+	errorType: ErrorType // Categorized error type
+}
+
+// Relationship creation error
+export interface RelationshipCreationError {
+	file: string // Relative file path (source file)
+	property: string // Property name that caused the error
+	target: string // Target file path (for relationship target)
+	error: string // Error message
+	errorType: ErrorType // Categorized error type
+}
+
+// Property write error (for writing property values to nodes, not relationships)
+export interface PropertyWriteError {
+	file: string // Relative file path
+	property: string // Property name
+	error: string // Error message
+	errorType: ErrorType // Categorized error type
+}
+
+// Property-level error statistics
+// fileErrors can contain relationship errors (for relationship mappings) or property write errors (for node property mappings)
+export interface PropertyErrorStats {
+	propertyName: string // Property name
+	successCount: number // Number of successful operations for this property
+	errorCount: number // Total number of errors for this property
+	fileErrors: Array<RelationshipCreationError | PropertyWriteError> // Errors for this property (relationship or property write)
+}
+
+// Migration phases that were executed
+export type MigrationPhase = "nodes" | "relationships"
+
+// Migration result with comprehensive error reporting
+export interface MigrationResult {
+	success: boolean
+	totalFiles: number
+	successCount: number // Node creation success count
+	errorCount: number // Total error count (sum of all error arrays)
+	duration: number
+	message?: string
+	timestamp?: number // Timestamp when migration completed
+	
+	// Phase tracking
+	phasesExecuted: MigrationPhase[] // Which phases were executed
+	
+	// Categorized error arrays
+	nodeErrors: NodeCreationError[] // Errors during node creation
+	relationshipErrors: RelationshipCreationError[] // Errors during relationship creation
+	propertyWriteErrors: PropertyWriteError[] // Errors during property write operations (node properties)
+	
+	// Property-level statistics
+	propertyStats: Record<string, PropertyErrorStats> // Key: property name, Value: error stats
+	
+	// Legacy relationship stats (for backward compatibility during transition)
+	relationshipStats?: {
+		successCount: number
+		errorCount: number
+	}
+}
+
 export interface PluginSettings {
 	neo4jUri: string
 	neo4jUsername: string
 	// Password is stored in session only (cleared when Obsidian closes)
 	propertyMappings?: Record<string, PropertyMapping>
-	lastMigrationResult?: {
-		success: boolean
-		totalFiles: number
-		successCount: number
-		errorCount: number
-		errors: Array<{ file: string; error: string } | RelationshipError>
-		duration: number
-		message?: string
-		relationshipStats?: {
-			successCount: number
-			errorCount: number
-		}
-		timestamp: number
-	}
+	lastMigrationResult?: MigrationResult
 	lastAnalysisResult?: VaultAnalysisResult
 }
 

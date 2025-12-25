@@ -4,8 +4,12 @@ import { MigrationService } from "../../services/MigrationService"
 import { StateService } from "../../services/StateService"
 import { CredentialService } from "../../services/CredentialService"
 import { getVaultPath, openSettings } from "../../utils/obsidianApi"
-import { DEFAULT_SETTINGS, type RelationshipError } from "../../types"
-import type { MigrationProgress } from "../../services/MigrationService"
+import { DEFAULT_SETTINGS } from "../../types"
+import type {
+	MigrationProgress,
+	NodeCreationError,
+	RelationshipCreationError,
+} from "../../types"
 
 /**
  * Migration tab component for displaying migration status, progress, and controls
@@ -196,6 +200,13 @@ export class MigrationTab {
 			})
 		}
 		
+		// Phase information
+		if (lastResult.phasesExecuted && lastResult.phasesExecuted.length > 0) {
+			stats.createDiv({
+				text: `Phases: ${lastResult.phasesExecuted.join(", ")}`,
+			})
+		}
+
 		// Relationship statistics (if available)
 		if (lastResult.relationshipStats) {
 			stats.createDiv({
@@ -213,41 +224,38 @@ export class MigrationTab {
 			text: `Duration: ${(lastResult.duration / 1000).toFixed(2)}s`,
 		})
 
-		// Timestamp
-		const timestamp = new Date(lastResult.timestamp)
-		stats.createDiv({
-			text: `Completed: ${timestamp.toLocaleString()}`,
-			cls: "graphdb-results-timestamp",
-		})
+		// Timestamp (if available)
+		if (lastResult.timestamp) {
+			const timestamp = new Date(lastResult.timestamp)
+			stats.createDiv({
+				text: `Completed: ${timestamp.toLocaleString()}`,
+				cls: "graphdb-results-timestamp",
+			})
+		}
 
-		// Errors list (if any)
-		if (lastResult.errors.length > 0) {
+		// Errors list (if any) - show node errors and relationship errors separately
+		const totalErrors =
+			(lastResult.nodeErrors?.length || 0) +
+			(lastResult.relationshipErrors?.length || 0) +
+			(lastResult.propertyWriteErrors?.length || 0)
+
+		if (totalErrors > 0) {
 			const errorsEl = resultsEl.createDiv("graphdb-results-errors")
 			errorsEl.createDiv({
 				text: "Errors:",
 				cls: "graphdb-results-errors-title",
 			})
-			const errorsList = errorsEl.createDiv("graphdb-results-errors-list")
-			lastResult.errors.slice(0, 10).forEach((error) => {
-				const errorItem = errorsList.createDiv("graphdb-results-error-item")
-				
-				// Type guard to check if this is a RelationshipError
-				const isRelationshipError = (err: { file: string; error: string } | RelationshipError): err is RelationshipError => {
-					return "property" in err && "target" in err
-				}
-				
-				if (isRelationshipError(error)) {
-					// Relationship error
-					errorItem.createSpan({
-						text: `${error.file} (${error.property} → ${error.target})`,
-						cls: "graphdb-results-error-file",
-					})
-					errorItem.createSpan({
-						text: error.error,
-						cls: "graphdb-results-error-message",
-					})
-				} else {
-					// Node creation error
+
+			// Node errors
+			if (lastResult.nodeErrors && lastResult.nodeErrors.length > 0) {
+				const nodeErrorsSection = errorsEl.createDiv("graphdb-results-errors-section")
+				nodeErrorsSection.createDiv({
+					text: `Node creation errors (${lastResult.nodeErrors.length}):`,
+					cls: "graphdb-results-errors-section-title",
+				})
+				const nodeErrorsList = nodeErrorsSection.createDiv("graphdb-results-errors-list")
+				lastResult.nodeErrors.slice(0, 5).forEach((error: NodeCreationError) => {
+					const errorItem = nodeErrorsList.createDiv("graphdb-results-error-item")
 					errorItem.createSpan({
 						text: error.file,
 						cls: "graphdb-results-error-file",
@@ -256,13 +264,79 @@ export class MigrationTab {
 						text: error.error,
 						cls: "graphdb-results-error-message",
 					})
-				}
-			})
-			if (lastResult.errors.length > 10) {
-				errorsList.createDiv({
-					text: `... and ${lastResult.errors.length - 10} more errors`,
-					cls: "graphdb-results-error-more",
+					errorItem.createSpan({
+						text: `[${error.errorType}]`,
+						cls: "graphdb-results-error-type",
+					})
 				})
+				if (lastResult.nodeErrors.length > 5) {
+					nodeErrorsList.createDiv({
+						text: `... and ${lastResult.nodeErrors.length - 5} more node errors`,
+						cls: "graphdb-results-error-more",
+					})
+				}
+			}
+
+			// Relationship errors
+			if (lastResult.relationshipErrors && lastResult.relationshipErrors.length > 0) {
+				const relErrorsSection = errorsEl.createDiv("graphdb-results-errors-section")
+				relErrorsSection.createDiv({
+					text: `Relationship errors (${lastResult.relationshipErrors.length}):`,
+					cls: "graphdb-results-errors-section-title",
+				})
+				const relErrorsList = relErrorsSection.createDiv("graphdb-results-errors-list")
+				lastResult.relationshipErrors.slice(0, 5).forEach((error: RelationshipCreationError) => {
+					const errorItem = relErrorsList.createDiv("graphdb-results-error-item")
+					errorItem.createSpan({
+						text: `${error.file} (${error.property} → ${error.target})`,
+						cls: "graphdb-results-error-file",
+					})
+					errorItem.createSpan({
+						text: error.error,
+						cls: "graphdb-results-error-message",
+					})
+					errorItem.createSpan({
+						text: `[${error.errorType}]`,
+						cls: "graphdb-results-error-type",
+					})
+				})
+				if (lastResult.relationshipErrors.length > 5) {
+					relErrorsList.createDiv({
+						text: `... and ${lastResult.relationshipErrors.length - 5} more relationship errors`,
+						cls: "graphdb-results-error-more",
+					})
+				}
+			}
+
+			// Property write errors (if any)
+			if (lastResult.propertyWriteErrors && lastResult.propertyWriteErrors.length > 0) {
+				const propErrorsSection = errorsEl.createDiv("graphdb-results-errors-section")
+				propErrorsSection.createDiv({
+					text: `Property write errors (${lastResult.propertyWriteErrors.length}):`,
+					cls: "graphdb-results-errors-section-title",
+				})
+				const propErrorsList = propErrorsSection.createDiv("graphdb-results-errors-list")
+				lastResult.propertyWriteErrors.slice(0, 5).forEach((error) => {
+					const errorItem = propErrorsList.createDiv("graphdb-results-error-item")
+					errorItem.createSpan({
+						text: `${error.file} (${error.property})`,
+						cls: "graphdb-results-error-file",
+					})
+					errorItem.createSpan({
+						text: error.error,
+						cls: "graphdb-results-error-message",
+					})
+					errorItem.createSpan({
+						text: `[${error.errorType}]`,
+						cls: "graphdb-results-error-type",
+					})
+				})
+				if (lastResult.propertyWriteErrors.length > 5) {
+					propErrorsList.createDiv({
+						text: `... and ${lastResult.propertyWriteErrors.length - 5} more property write errors`,
+						cls: "graphdb-results-error-more",
+					})
+				}
 			}
 		}
 	}

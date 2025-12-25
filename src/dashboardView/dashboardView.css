@@ -1148,4 +1148,170 @@
 	font-weight: 500;
 }
 
+/* Status indicators */
+.graphdb-analysis-property-card-status {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 8px;
+}
+
+.graphdb-analysis-property-card-status-check {
+	display: inline-flex;
+	width: 18px;
+	height: 18px;
+	color: var(--text-success);
+}
+
+.graphdb-analysis-property-card-status-error {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 6px;
+	background-color: var(--background-secondary);
+	border-radius: 4px;
+}
+
+.graphdb-analysis-property-card-status-error-icon {
+	display: inline-flex;
+	width: 16px;
+	height: 16px;
+	color: var(--text-error);
+}
+
+.graphdb-analysis-property-card-status-error-count {
+	font-size: 0.85em;
+	font-weight: 600;
+	color: var(--text-error);
+}
+
+/* Error section */
+.graphdb-analysis-property-card-error-section {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.graphdb-analysis-property-card-error-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	padding: 4px 8px;
+	margin: -4px -8px;
+	border-radius: 4px;
+	color: var(--text-error);
+	font-size: 0.9em;
+	font-weight: 500;
+	user-select: none;
+}
+
+.graphdb-analysis-property-card-error-header-clickable:hover {
+	background-color: var(--background-secondary);
+}
+
+.graphdb-analysis-property-card-error-header-icon {
+	display: inline-flex;
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+	transition: transform 0.2s ease;
+}
+
+.graphdb-analysis-property-card-error-header-text {
+	flex: 1;
+}
+
+.graphdb-analysis-property-card-error-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 8px;
+	padding: 8px;
+	background-color: var(--background-secondary);
+	border-radius: 4px;
+	max-height: 400px;
+	overflow-y: auto;
+}
+
+.graphdb-analysis-property-card-error-list-hidden {
+	display: none;
+}
+
+.graphdb-analysis-property-card-error-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px;
+	background-color: var(--background-primary);
+	border-radius: 4px;
+	font-size: 0.85em;
+}
+
+.graphdb-analysis-property-card-error-file {
+	display: flex;
+	align-items: center;
+}
+
+.graphdb-analysis-property-card-error-file .internal-link {
+	color: var(--text-accent);
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.graphdb-analysis-property-card-error-file .internal-link:hover {
+	text-decoration: underline;
+}
+
+.graphdb-analysis-property-card-error-file-missing {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.graphdb-analysis-property-card-error-message {
+	color: var(--text-error);
+	font-size: 0.9em;
+}
+
+.graphdb-analysis-property-card-error-target {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.85em;
+	color: var(--text-muted);
+	margin-top: 2px;
+}
+
+.graphdb-analysis-property-card-error-target-label {
+	font-weight: 500;
+}
+
+.graphdb-analysis-property-card-error-target .internal-link {
+	color: var(--text-accent);
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.graphdb-analysis-property-card-error-target .internal-link:hover {
+	text-decoration: underline;
+}
+
+/* Migration results error sections */
+.graphdb-results-errors-section {
+	margin-top: 12px;
+}
+
+.graphdb-results-errors-section-title {
+	font-weight: 600;
+	margin-bottom: 8px;
+	color: var(--text-error);
+	font-size: 0.9em;
+}
+
+.graphdb-results-error-type {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	font-style: italic;
+	margin-left: 8px;
+}
+
 
