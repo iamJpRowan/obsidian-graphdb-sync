@@ -1,16 +1,15 @@
 import { Plugin, WorkspaceLeaf } from "obsidian"
 import { CredentialService } from "./services/CredentialService"
-import { MigrationService } from "./services/MigrationService"
 import { StateService } from "./services/StateService"
 import { StatusBarService } from "./statusBar/StatusBarService"
 import {
-	DashboardView,
-	DASHBOARD_VIEW_TYPE,
+	DashboardViewV2,
+	DASHBOARD_VIEW_TYPE_V2,
 } from "./dashboardView/DashboardView"
 import { SettingsTab } from "./settingsTab"
 import { DEFAULT_SETTINGS, type PluginSettings } from "./types"
 
-export const VIEW_TYPE_GRAPHDB_SYNC = DASHBOARD_VIEW_TYPE
+export const VIEW_TYPE_GRAPHDB_SYNC = DASHBOARD_VIEW_TYPE_V2
 
 export default class GraphDBSyncPlugin extends Plugin {
 	settings: PluginSettings
@@ -35,36 +34,18 @@ export default class GraphDBSyncPlugin extends Plugin {
 		// Register settings tab
 		this.addSettingTab(new SettingsTab(this))
 
-		// Register view
+		// Register dashboard view
 		this.registerView(
 			VIEW_TYPE_GRAPHDB_SYNC,
-			(leaf) => new DashboardView(leaf, this)
+			(leaf) => new DashboardViewV2(leaf, this)
 		)
 
-		// Register command to open status view
+		// Register command to open dashboard
 		this.addCommand({
-			id: "open-migration-status",
-			name: "Open sync status",
-			callback: () => {
-				this.activateViewInternal()
-			},
-		})
-
-		// Register command to start migration
-		this.addCommand({
-			id: "start-migration",
-			name: "Start migration",
+			id: "open-dashboard",
+			name: "Open sync dashboard",
 			callback: async () => {
-				await this.startMigrationInternal()
-			},
-		})
-
-		// Register command to open analysis view
-		this.addCommand({
-			id: "open-analysis-view",
-			name: "Open analysis view",
-			callback: async () => {
-				await this.activateViewInternal()
+				await this.activateView()
 			},
 		})
 
@@ -97,9 +78,9 @@ export default class GraphDBSyncPlugin extends Plugin {
 	}
 
 	/**
-	 * Activates or opens the status view
+	 * Activates or opens the dashboard view
 	 */
-	private async activateViewInternal(): Promise<void> {
+	private async activateView(): Promise<void> {
 		const { workspace } = this.app
 
 		let leaf: WorkspaceLeaf | null = null
@@ -124,32 +105,18 @@ export default class GraphDBSyncPlugin extends Plugin {
 	}
 
 	/**
-	 * Starts a migration
-	 */
-	private async startMigrationInternal(): Promise<void> {
-		if (MigrationService.isRunning()) {
-			return
-		}
-
-		// Open view if not already open
-		await this.activateViewInternal()
-
-		// Migration is now handled within the dashboard view
-		// The user can start migration from the Migration Controls section
-	}
-
-
-	/**
 	 * Public method for status bar service to activate view
 	 */
-	activateView(): Promise<void> {
-		return this.activateViewInternal()
+	activateViewPublic(): Promise<void> {
+		return this.activateView()
 	}
 
 	/**
 	 * Public method for status bar service to start migration
 	 */
 	startMigration(): Promise<void> {
-		return this.startMigrationInternal()
+		// Migration is now handled within the dashboard view
+		// Just open the view
+		return this.activateView()
 	}
 }

@@ -148,6 +148,7 @@ const context = await esbuild.context({
   treeShaking: true,
   outfile: path.join(outDir, "main.js"),
   minify: prod,
+  resolveExtensions: [".ts", ".js"],
   alias: {
     "@": path.resolve(__dirname, "src"),
   },

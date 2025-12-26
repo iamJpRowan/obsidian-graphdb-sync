@@ -129,7 +129,7 @@ export class StatusBarService {
 			item.setTitle("Open sync status")
 			item.setIcon("database")
 			item.onClick(() => {
-				plugin.activateView()
+				plugin.activateViewPublic()
 			})
 		})
 

@@ -79,3 +79,4 @@ export function categorizeError(error: unknown): ErrorType {
 	return "UNKNOWN"
 }
 
+

@@ -114,6 +114,9 @@ export interface PluginSettings {
 	propertyMappings?: Record<string, PropertyMapping>
 	lastMigrationResult?: MigrationResult
 	lastAnalysisResult?: VaultAnalysisResult
+	nodeLabelConfig?: NodeLabelConfig
+	labelRules?: LabelRule[] // New: Label rules configuration
+	propertyMigrationHistory?: Record<string, PropertyMigrationHistory> // New: Per-property migration history
 }
 
 export interface Neo4jCredentials {
@@ -211,3 +214,174 @@ export type FrontMatterValue =
 	| null
 	| FrontMatterValue[]
 	| { [key: string]: FrontMatterValue }
+
+// Node label configuration
+export interface NodeLabelConfig {
+	tags: string[] // Tags that determine node labels
+	folders: string[] // Folders that determine node labels
+}
+
+// Validation issue types
+export type ValidationIssueType =
+	| "invalid_wikilink"
+	| "non_existent_file"
+	| "inconsistent_pattern"
+	| "missing_mapping"
+
+// Validation issue severity
+export type ValidationIssueSeverity = "error" | "warning"
+
+// Validation issue
+export interface ValidationIssue {
+	type: ValidationIssueType
+	severity: ValidationIssueSeverity
+	message: string
+	count: number
+}
+
+// File issue (specific file with a validation problem)
+export interface FileIssue {
+	filePath: string
+	value: string
+	issue: ValidationIssue
+}
+
+// Property validation result
+export interface PropertyValidationResult {
+	propertyName: string
+	isValid: boolean
+	issues: ValidationIssue[]
+	filesWithIssues: FileIssue[]
+}
+
+// Validation summary for multiple properties
+export interface ValidationSummary {
+	totalProperties: number
+	validProperties: number
+	propertiesWithIssues: number
+	results: Record<string, PropertyValidationResult>
+}
+
+// Property state (complete state for UI)
+export interface PropertyState {
+	property: PropertyStats
+	mapping: PropertyMapping | null
+	validation: PropertyValidationResult | null
+	migrationStats: PropertyErrorStats | null
+	hasWikilinks: boolean
+	hasErrors: boolean
+	hasValidationIssues: boolean
+	isMapped: boolean
+	isEnabled: boolean
+}
+
+// Property filter criteria
+export interface PropertyFilter {
+	mapped?: boolean
+	unmapped?: boolean
+	hasWikilinks?: boolean
+	hasErrors?: boolean
+	hasValidationIssues?: boolean
+	enabled?: boolean
+	search?: string
+}
+
+// Property statistics
+export interface PropertyStatistics {
+	total: number
+	mapped: number
+	enabled: number
+	withErrors: number
+	withValidationIssues: number
+	withWikilinks: number
+}
+
+// Mapping validation result
+export interface MappingValidationResult {
+	isValid: boolean
+	errors: string[]
+	warnings: string[]
+}
+
+// ============================================================================
+// NEW SIMPLIFIED TYPES FOR V2 UI
+// ============================================================================
+
+/**
+ * Simplified property information for UI display
+ */
+export interface PropertyInfo {
+	name: string
+	type: PropertyType
+	pattern: ValuePattern
+	frequency: number
+	sampleValues: string[]
+	isArray: boolean
+	hasWikilinks?: boolean
+}
+
+/**
+ * Relationship mapping configuration
+ */
+export interface RelationshipMapping {
+	propertyName: string
+	relationshipType: string
+	direction: "outgoing" | "incoming"
+	enabled: boolean
+}
+
+/**
+ * Node property mapping configuration
+ */
+export interface NodePropertyMapping {
+	propertyName: string
+	enabled: boolean
+}
+
+/**
+ * Label rule for assigning labels to nodes
+ */
+export interface LabelRule {
+	type: "tag" | "folder"
+	pattern: string // e.g., "#project-*" or "folder/path" or exact match
+	labelName: string // Neo4j label name
+	enabled: boolean
+}
+
+/**
+ * Simplified validation result
+ */
+export interface ValidationResult {
+	propertyName: string
+	isValid: boolean
+	issues: Array<{
+		type: ValidationIssueType
+		severity: ValidationIssueSeverity
+		message: string
+		count: number
+	}>
+	filesWithIssues: Array<{
+		filePath: string
+		value: string
+		issue: {
+			type: ValidationIssueType
+			severity: ValidationIssueSeverity
+			message: string
+			count: number
+		}
+	}>
+}
+
+/**
+ * Per-property migration history
+ */
+export interface PropertyMigrationHistory {
+	propertyName: string
+	migrations: Array<{
+		timestamp: number
+		strategy: "full" | "property_only" | "labels_only"
+		success: boolean
+		errorCount: number
+		successCount: number
+	}>
+}

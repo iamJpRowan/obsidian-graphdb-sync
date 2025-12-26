@@ -76,3 +76,4 @@ function resolveWikilinkToPath(linkText: string, app: App): string | null {
 
 
 
+

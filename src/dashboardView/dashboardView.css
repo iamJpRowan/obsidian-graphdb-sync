@@ -1,41 +1,120 @@
-/* Dashboard view styles */
-.graphdb-sync-dashboard-view {
+/* Dashboard V2 Styles */
+
+.graphdb-dashboard-v2 {
 	padding: 20px;
 }
 
-/* Tabs - shadcn/ui style */
-.graphdb-tabs-container {
+.graphdb-dashboard-v2-content {
 	display: flex;
 	flex-direction: column;
-	height: 100%;
+	gap: 24px;
 }
 
-.graphdb-tab-buttons {
-	display: inline-flex;
-	height: 38px;
-	align-items: center;
-	justify-content: center;
-	border-radius: 6px;
-	padding: 2px;
+/* Settings link */
+.graphdb-settings-link-container {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 8px;
+}
+
+.graphdb-migration-panel-header {
+	display: flex;
+	justify-content: flex-end;
 	margin-bottom: 16px;
 }
 
-.graphdb-tab-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	white-space: nowrap;
-	padding: 6px 16px;
-	font-size: 0.875rem;
-	font-weight: 500;
-	line-height: 1.25rem;
-	border-radius: 4px;
-	border: none;
-	cursor: pointer;
-	transition: all 0.15s ease;
+.graphdb-migration-panel-settings {
+	display: flex;
+	justify-content: flex-end;
+}
+
+/* Migration Panel */
+.graphdb-migration-panel-container {
+	border: 2px solid var(--interactive-accent);
+	border-radius: 8px;
+	padding: 16px;
+	background-color: var(--background-secondary);
+}
+
+
+.graphdb-migration-panel-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.graphdb-migration-section {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.graphdb-migration-section h3 {
+	margin: 0;
+	font-size: 1em;
+	font-weight: 600;
+}
+
+.graphdb-migration-buttons {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.graphdb-migration-panel-status {
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.graphdb-migration-status {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.graphdb-migration-status-success {
+	color: var(--text-success);
+}
+
+.graphdb-migration-status-error {
+	color: var(--text-error);
+}
+
+.graphdb-migration-status-time {
+	font-size: 0.9em;
 	color: var(--text-muted);
+}
+
+/* Configuration Tabs */
+.graphdb-configuration-tabs-container {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 16px;
+}
+
+.graphdb-configuration-tabs {
+	display: flex;
+	flex-direction: column;
+}
+
+.graphdb-tab-buttons {
+	display: flex;
+	gap: 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	margin-bottom: 16px;
+	padding-bottom: 8px;
+}
+
+.graphdb-tab-button {
+	padding: 8px 16px;
+	border: none;
 	background: transparent;
-	position: relative;
+	color: var(--text-muted);
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -9px;
+	transition: all 0.2s ease;
 }
 
 .graphdb-tab-button:hover {
@@ -44,1631 +123,260 @@
 
 .graphdb-tab-button-active {
 	color: var(--text-normal);
-	background-color: var(--background-primary);
-	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	border-bottom-color: var(--interactive-accent);
+	font-weight: 600;
 }
 
 .graphdb-tab-content {
-	position: relative;
-	flex: 1;
-	overflow-y: auto;
+	min-height: 400px;
 }
 
-.graphdb-tab-pane {
-	display: none;
-}
-
-.graphdb-tab-pane-active {
-	display: block;
-}
-
-.graphdb-status-section,
-.graphdb-progress-section,
-.graphdb-results-section,
-.graphdb-analysis-progress-section,
-.graphdb-analysis-section,
-.graphdb-controls-section {
-	margin-bottom: 24px;
-}
-
-.graphdb-status {
-	padding: 12px;
-	border-radius: 4px;
-	font-weight: 500;
-}
-
-.graphdb-status-ready {
-	background-color: var(--background-secondary);
-	color: var(--text-normal);
-}
-
-.graphdb-status-running {
-	background-color: var(--background-secondary);
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-status-paused {
-	background-color: var(--background-secondary);
-	color: var(--text-muted);
-}
-
-.graphdb-status-error {
-	background-color: var(--background-secondary);
-	color: var(--text-error);
-}
-
-/* Progress section */
-.graphdb-progress {
-	margin-top: 8px;
-}
-
-.graphdb-progress-bar-container {
-	width: 100%;
-	height: 8px;
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-	overflow: hidden;
-	margin-bottom: 8px;
-}
-
-.graphdb-progress-bar {
-	height: 100%;
-	width: var(--progress-width, 0%);
-	background-color: var(--interactive-accent);
-	transition: width 0.3s ease;
-}
-
-.graphdb-progress-text {
-	color: var(--text-muted);
-	font-size: 0.9em;
-}
-
-/* Results section */
-.graphdb-results-empty {
-	color: var(--text-muted);
-	font-style: italic;
-	padding: 12px;
-}
-
-.graphdb-results {
-	padding: 16px;
-	border-radius: 4px;
-	background-color: var(--background-secondary);
-}
-
-.graphdb-results-success {
-	border-left: 3px solid var(--text-success);
-}
-
-.graphdb-results-error {
-	border-left: 3px solid var(--text-error);
-}
-
-.graphdb-results-header {
-	margin-bottom: 12px;
-}
-
-.graphdb-results-title {
-	font-weight: 600;
-	font-size: 1.1em;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.graphdb-results-title-icon {
-	display: inline-flex;
-	width: 18px;
-	height: 18px;
-	flex-shrink: 0;
-}
-
-.graphdb-results-stats {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	margin-bottom: 12px;
-	color: var(--text-muted);
-	font-size: 0.9em;
-}
-
-.graphdb-results-error-count {
-	color: var(--text-error);
-}
-
-.graphdb-results-timestamp {
-	font-size: 0.85em;
-	opacity: 0.8;
-}
-
-.graphdb-results-errors {
-	margin-top: 12px;
-	padding-top: 12px;
-	border-top: 1px solid var(--background-modifier-border);
-}
-
-.graphdb-results-errors-title {
-	font-weight: 600;
-	margin-bottom: 8px;
-	color: var(--text-error);
-}
-
-.graphdb-results-errors-list {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	max-height: 300px;
-	overflow-y: auto;
-}
-
-.graphdb-results-error-item {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	padding: 8px;
-	background-color: var(--background-primary);
-	border-radius: 4px;
-	font-size: 0.85em;
-}
-
-.graphdb-results-error-file {
-	font-weight: 500;
-	color: var(--text-normal);
-}
-
-.graphdb-results-error-message {
-	color: var(--text-error);
-}
-
-.graphdb-results-error-more {
-	color: var(--text-muted);
-	font-style: italic;
-	margin-top: 4px;
-}
-
-/* Controls section */
-.graphdb-controls {
-	display: flex;
-	gap: 8px;
-}
-
-.graphdb-controls button {
-	flex: 0 0 auto;
-}
-
-/* Analysis section */
-.graphdb-analysis-progress {
-	margin-top: 8px;
-}
-
-.graphdb-analysis-empty {
-	color: var(--text-muted);
-	font-style: italic;
-	padding: 12px;
-}
-
-.graphdb-analysis {
-	padding: 16px;
-	border-radius: 4px;
-	background-color: var(--background-secondary);
-}
-
-.graphdb-analysis-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 12px;
-}
-
-.graphdb-analysis-header-content {
-	flex: 1;
-}
-
-.graphdb-analysis-title {
-	font-weight: 600;
-	font-size: 1.1em;
-}
-
-.graphdb-refresh-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	padding: 6px 8px;
-	min-width: 32px;
-}
-
-.graphdb-refresh-button span[data-lucide] {
-	display: inline-flex;
-	width: 16px;
-	height: 16px;
-}
-
-.graphdb-analysis-last-run {
-	margin-bottom: 12px;
-	padding: 8px 12px;
-	background-color: var(--background-primary);
-	border-radius: 4px;
-	border-left: 3px solid var(--interactive-accent);
-}
-
-.graphdb-analysis-last-run-text {
-	font-weight: 500;
-	color: var(--text-normal);
-}
-
-.graphdb-analysis-stats {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	margin-bottom: 12px;
-	color: var(--text-muted);
-	font-size: 0.9em;
-}
-
-.graphdb-analysis-timestamp {
-	font-size: 0.85em;
-	opacity: 0.8;
-}
-
-.graphdb-analysis-properties {
-	margin-top: 12px;
-	padding-top: 12px;
-	border-top: 1px solid var(--background-modifier-border);
-}
-
-.graphdb-analysis-properties-title {
-	font-weight: 600;
-	margin-bottom: 8px;
-}
-
-.graphdb-analysis-table {
-	width: 100%;
-	border-collapse: collapse;
-	font-size: 0.9em;
-}
-
-.graphdb-analysis-table thead {
-	background-color: var(--background-primary);
-}
-
-.graphdb-analysis-table th {
-	padding: 8px 12px;
-	text-align: left;
-	font-weight: 600;
-	border-bottom: 2px solid var(--background-modifier-border);
-}
-
-.graphdb-analysis-table td {
-	padding: 8px 12px;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.graphdb-analysis-table td .graphdb-analysis-type-display {
-	display: inline-flex;
-	align-items: center;
-}
-
-.graphdb-analysis-table tbody tr:hover {
-	background-color: var(--background-primary);
-}
-
-.graphdb-analysis-samples {
-	margin: 0;
-	padding-left: 16px;
-	list-style: disc;
-}
-
-.graphdb-analysis-samples li {
-	margin: 2px 0;
-	font-size: 0.85em;
-	color: var(--text-muted);
-}
-
-/* Properties section */
-.graphdb-analysis-properties {
-	margin-top: 16px;
-}
-
-.graphdb-analysis-properties-title {
-	font-weight: 600;
-	margin-bottom: 12px;
-}
-
-.graphdb-analysis-property-card {
-	margin-bottom: 12px;
-	padding: 12px;
-	background-color: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
-	border-left: 3px solid var(--interactive-accent);
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.graphdb-analysis-property-card-clickable {
-	cursor: pointer;
-}
-
-.graphdb-analysis-property-card-clickable:hover {
-	background-color: var(--background-secondary);
-}
-
-.graphdb-analysis-property-card-warning {
-	border-left-color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-property-card-header {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	margin-bottom: 8px;
-}
-
-.graphdb-analysis-property-card-header-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	flex-wrap: wrap;
-}
-
-.graphdb-analysis-property-card-header-clickable {
-	cursor: pointer;
-}
-
-.graphdb-analysis-property-card-header-clickable:hover {
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-	padding: 2px 4px;
-	margin: -2px -4px;
-}
-
-.graphdb-analysis-property-card-header-left {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex: 1;
-	min-width: 0;
-}
-
-.graphdb-analysis-property-card-header-right {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex-shrink: 0;
-}
-
-.graphdb-analysis-property-card-expand-icon {
-	display: inline-flex;
-	width: 18px;
-	height: 18px;
-	flex-shrink: 0;
-	color: var(--text-muted);
-	transition: color 0.2s ease;
-}
-
-.graphdb-analysis-property-card-preview-row-header {
-	margin-top: 4px;
-	padding-left: 24px; /* Align with property name (icon + spacing) */
-}
-
-.graphdb-analysis-property-card-preview {
-	font-size: 0.85em;
-	color: var(--text-muted);
-	font-family: var(--font-monospace);
-	font-style: italic;
-}
-
-.graphdb-analysis-property-card-enable-toggle {
-	display: flex;
-	align-items: center;
-}
-
-/* Compact enable toggle styling */
-.graphdb-enable-toggle-compact {
-	margin: 0;
-	padding: 0;
-	min-height: auto;
-}
-
-.graphdb-enable-toggle-compact .setting-item-control {
-	padding: 0;
-}
-
-.graphdb-enable-toggle-disabled {
-	cursor: not-allowed !important;
-	opacity: 0.6;
-}
-
-.graphdb-enable-toggle-disabled .setting-item-control {
-	cursor: not-allowed !important;
-}
-
-.graphdb-enable-toggle-disabled input[type='checkbox'] {
-	cursor: not-allowed !important;
-}
-
-.graphdb-analysis-property-card-name {
-	font-weight: 600;
-	font-size: 1.1em;
-	color: var(--text-normal);
-}
-
-.graphdb-analysis-property-card-badge {
-	font-size: 0.85em;
-	color: var(--text-muted);
-	font-style: italic;
-}
-
-.graphdb-analysis-property-card-frequency-section {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	margin-left: auto;
-	gap: 2px;
-}
-
-.graphdb-analysis-property-card-type-name {
-	font-size: 0.8em;
-	color: var(--text-muted);
-	font-weight: 500;
-}
-
-.graphdb-analysis-property-card-frequency {
-	font-size: 0.85em;
-	color: var(--text-muted);
-}
-
-.graphdb-analysis-property-card-body {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	font-size: 0.9em;
-	margin-top: 8px;
-}
-
-.graphdb-analysis-property-card-body-hidden {
-	display: none;
-}
-
-.graphdb-analysis-property-card-metadata-row {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	flex-wrap: wrap;
-	padding-bottom: 8px;
-	margin-bottom: 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.graphdb-analysis-property-card-metadata-item {
-	font-size: 0.85em;
-	color: var(--text-muted);
-}
-
-.graphdb-analysis-property-card-metadata-count-container {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	margin-left: auto;
-}
-
-.graphdb-analysis-property-card-metadata-issues {
-	display: inline-flex;
-	align-items: center;
-}
-
-.graphdb-analysis-property-card-metadata-issues-icon {
-	display: inline-flex;
-	width: 16px;
-	height: 16px;
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-property-card-metadata-count {
-	font-weight: 500;
-}
-
-.graphdb-analysis-property-card-pattern {
-	font-size: 0.85em;
-	color: var(--text-muted);
-	font-style: italic;
-	margin-left: 8px;
-}
-
-.graphdb-analysis-property-card-validation {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.graphdb-analysis-property-card-validation-line {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.graphdb-analysis-property-card-icon {
-	display: inline-flex;
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-}
-
-.graphdb-analysis-property-card-validation-line.graphdb-analysis-property-card-warning {
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-property-card-validation-line.graphdb-analysis-property-card-warning .graphdb-analysis-property-card-icon {
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-property-card-validation-line.graphdb-analysis-property-card-error {
-	color: var(--text-error);
-}
-
-.graphdb-analysis-property-card-validation-line.graphdb-analysis-property-card-error .graphdb-analysis-property-card-icon {
-	color: var(--text-error);
-}
-
-.graphdb-analysis-property-card-valid {
-	color: var(--text-success);
-}
-
-.graphdb-analysis-property-card-valid .graphdb-analysis-property-card-icon {
-	color: var(--text-success);
-}
-
-.graphdb-analysis-property-card-samples {
-	margin-top: 8px;
-	padding-top: 8px;
-	border-top: 1px solid var(--background-modifier-border);
-}
-
-.graphdb-analysis-property-card-samples-title {
-	font-size: 0.85em;
-	font-weight: 500;
-	margin-bottom: 4px;
-	color: var(--text-muted);
-}
-
-.graphdb-analysis-property-card-samples-list {
-	margin: 0;
-	padding-left: 16px;
-	list-style: disc;
-	font-size: 0.85em;
-}
-
-.graphdb-analysis-property-card-issue-item {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	list-style: none;
-	margin-left: 0;
-	padding-left: 0;
-}
-
-.graphdb-analysis-property-card-issue-icon {
-	display: inline-flex;
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-	color: var(--text-error);
-}
-
-.graphdb-analysis-property-card-issue-text {
-	font-size: 0.85em;
-	color: var(--text-normal);
-}
-
-.graphdb-analysis-property-card-sample-value {
-	color: var(--text-normal);
-}
-
-.graphdb-analysis-property-card-sample-error {
-	color: var(--text-error);
-}
-
-.graphdb-analysis-property-card-sample-warning {
-	color: var(--text-warning, #f59e0b);
-}
-
-/* Collapsible section */
-.graphdb-analysis-property-card-collapsible {
-	margin-top: 8px;
-}
-
-.graphdb-analysis-property-card-collapsible-header {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	cursor: pointer;
-	padding: 6px 8px;
-	margin: -6px -8px;
-	border-radius: 4px;
-	color: var(--text-muted);
-	font-size: 0.9em;
-	user-select: none;
-	width: 100%;
-}
-
-.graphdb-analysis-property-card-collapsible-header:hover {
-	color: var(--text-normal);
-	background-color: var(--background-secondary);
-}
-
-.graphdb-analysis-property-card-collapsible-icon {
-	display: inline-flex;
-	width: 14px;
-	height: 14px;
-	flex-shrink: 0;
-	transition: transform 0.2s ease;
-}
-
-.graphdb-analysis-property-card-collapsible-title {
-	font-weight: 500;
-	flex: 1;
-}
-
-.graphdb-analysis-property-card-header-issues {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	margin-left: auto;
-}
-
-.graphdb-analysis-property-card-header-issue-item {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-}
-
-.graphdb-analysis-property-card-header-issue-icon {
-	display: inline-flex;
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-	color: var(--text-error);
-}
-
-.graphdb-analysis-property-card-header-issue-icon-warning {
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-property-card-header-issue-count {
-	font-size: 0.95em;
-	font-weight: 500;
-	color: var(--text-error);
-}
-
-.graphdb-analysis-property-card-header-issue-item:has(.graphdb-analysis-property-card-header-issue-icon-warning) .graphdb-analysis-property-card-header-issue-count {
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-property-card-collapsible-content {
-	margin-top: 8px;
-}
-
-/* Configuration section */
-.graphdb-analysis-property-card-config-section {
+/* Tab common styles */
+.graphdb-tab-header {
 	margin-bottom: 16px;
-	padding-bottom: 16px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
 }
 
-.graphdb-analysis-property-card-config-status {
-	font-size: 0.85em;
+.graphdb-tab-header h2 {
+	margin-top: 0;
+	margin-bottom: 8px;
+}
+
+.graphdb-tab-description {
 	color: var(--text-muted);
-	margin-left: 8px;
-	font-style: italic;
-}
-
-/* Compact inline form row */
-.graphdb-config-inline-row {
-	display: flex;
-	align-items: center;
-	gap: 24px;
-	flex-wrap: wrap;
-}
-
-.graphdb-config-inline-item {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.graphdb-config-label {
 	font-size: 0.9em;
-	color: var(--text-normal);
-	font-weight: 500;
-	white-space: nowrap;
+	margin-bottom: 12px;
 }
 
-.graphdb-config-toggle-container {
+.graphdb-tab-controls {
 	display: flex;
-	align-items: center;
-}
-
-.graphdb-config-toggle {
-	width: 18px;
-	height: 18px;
-	cursor: pointer;
-	accent-color: var(--interactive-accent);
-}
-
-.graphdb-config-dropdown {
-	padding: 4px 8px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	background-color: var(--background-primary);
-	color: var(--text-normal);
-	font-size: 0.9em;
-	cursor: pointer;
-	min-width: 120px;
-}
-
-.graphdb-config-dropdown:hover {
-	border-color: var(--interactive-accent);
-}
-
-.graphdb-config-dropdown:focus {
-	outline: 2px solid var(--interactive-accent);
-	outline-offset: 2px;
-}
-
-/* Relationship field */
-.graphdb-config-relationship-field {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.graphdb-config-relationship-input-row {
-	display: flex;
-	align-items: center;
 	gap: 12px;
+	align-items: center;
+	margin-bottom: 16px;
 	flex-wrap: wrap;
 }
 
-.graphdb-config-relationship-name-container {
-	display: flex;
-	align-items: center;
+.graphdb-tab-search {
 	flex: 1;
 	min-width: 200px;
 }
 
-.graphdb-config-relationship-name-input {
-	flex: 1;
-	padding: 4px 8px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	background-color: var(--background-primary);
-	color: var(--text-normal);
-	font-size: 0.9em;
-	font-family: var(--font-monospace);
-}
-
-.graphdb-config-relationship-name-input:focus {
-	outline: 2px solid var(--interactive-accent);
-	outline-offset: 2px;
-	border-color: var(--interactive-accent);
-}
-
-.graphdb-config-relationship-name-input:invalid {
-	border-color: var(--text-error);
-}
-
-.graphdb-config-error-row {
-	margin-top: 4px;
-}
-
-.graphdb-config-error-container {
-	min-height: 20px;
-}
-
-.graphdb-config-error-text {
-	font-size: 0.85em;
-	color: var(--text-error);
-	display: block;
-}
-
-.graphdb-config-relationship-direction-container {
-	display: flex;
-	align-items: center;
-	margin-left: 8px;
-}
-
-.graphdb-config-relationship-direction-button {
-	padding: 4px 12px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	background-color: var(--background-secondary);
-	color: var(--text-normal);
-	font-size: 0.9em;
-	cursor: pointer;
-	transition: background-color 0.2s ease, border-color 0.2s ease;
-	white-space: nowrap;
-}
-
-.graphdb-config-relationship-direction-button:hover {
-	background-color: var(--background-modifier-hover);
-	border-color: var(--interactive-accent);
-}
-
-.graphdb-config-relationship-direction-button:active {
-	background-color: var(--background-modifier-active);
-}
-
-.graphdb-config-helper-text {
-	font-size: 0.8em;
-	color: var(--text-muted);
-	margin-top: 4px;
-	margin-bottom: 8px;
-}
-
-.graphdb-config-node-property-field {
-	margin-top: 12px;
-}
-
-.graphdb-config-coming-soon {
-	padding: 16px;
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-	border: 1px solid var(--background-modifier-border);
-	text-align: center;
-}
-
-.graphdb-config-coming-soon-text {
-	display: block;
-	font-size: 0.95em;
-	font-weight: 500;
-	color: var(--text-normal);
-	margin-bottom: 4px;
-}
-
-.graphdb-config-coming-soon-description {
-	display: block;
-	font-size: 0.85em;
-	color: var(--text-muted);
-}
-
-/* Samples section */
-.graphdb-analysis-property-card-samples-section {
-	margin-top: 16px;
-}
-
-.graphdb-analysis-property-card-collapsible-hidden {
-	display: none;
-}
-
-.graphdb-analysis-property-card-collapsible-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: 16px;
-}
-
-@media (max-width: 800px) {
-	.graphdb-analysis-property-card-collapsible-grid {
-		grid-template-columns: 1fr;
-	}
-}
-
-.graphdb-analysis-property-card-collapsible-column {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.graphdb-analysis-property-card-column-title {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	font-weight: 500;
-	font-size: 0.85em;
-	color: var(--text-muted);
-	margin-bottom: 4px;
-}
-
-.graphdb-analysis-property-card-column-title-icon {
-	display: inline-flex;
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-	color: var(--text-error);
-}
-
-.graphdb-analysis-property-card-column-title-icon-warning {
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-issue-header {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin-bottom: 6px;
-}
-
-.graphdb-analysis-issue-property {
-	font-weight: 500;
-}
-
-.graphdb-analysis-issue-badge {
-	font-size: 0.85em;
-	color: var(--text-muted);
-	font-style: italic;
-}
-
-.graphdb-analysis-issue-frequency {
-	font-size: 0.85em;
-	color: var(--text-muted);
-	margin-left: auto;
-}
-
-.graphdb-analysis-type-display {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	font-size: 0.85em;
-	color: var(--text-muted);
-}
-
-.graphdb-analysis-type-icon {
-	display: inline-flex;
-	width: 18px;
-	height: 18px;
-	flex-shrink: 0;
-	color: var(--text-normal);
-}
-
-.graphdb-analysis-issue-details {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	font-size: 0.9em;
-}
-
-.graphdb-analysis-issue-line {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.graphdb-analysis-issue-icon {
-	display: inline-flex;
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-}
-
-.graphdb-analysis-issue-warning {
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-issue-warning .graphdb-analysis-issue-icon {
-	color: var(--text-warning, #f59e0b);
-}
-
-.graphdb-analysis-issue-error {
-	color: var(--text-error);
-}
-
-.graphdb-analysis-issue-error .graphdb-analysis-issue-icon {
-	color: var(--text-error);
-}
-
-.graphdb-analysis-issue-samples {
-	margin-top: 8px;
-	padding-top: 8px;
-	border-top: 1px solid var(--background-modifier-border);
-}
-
-.graphdb-analysis-issue-samples-title {
-	font-size: 0.85em;
-	font-weight: 500;
-	margin-bottom: 4px;
-	color: var(--text-muted);
-}
-
-.graphdb-analysis-issue-samples-list {
-	margin: 0;
-	padding-left: 16px;
-	list-style: disc;
-	font-size: 0.85em;
-}
-
-.graphdb-analysis-issue-sample-value {
-	color: var(--text-normal);
-}
-
-.graphdb-analysis-issue-sample-error {
-	color: var(--text-error);
-}
-
-/* File properties section */
-.graphdb-analysis-file-properties {
-	margin-top: 16px;
-	padding: 12px;
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-}
-
-.graphdb-analysis-file-properties-title {
-	font-weight: 600;
-	margin-bottom: 8px;
-}
-
-.graphdb-analysis-file-properties-list {
-	margin: 0;
-	padding-left: 16px;
-	list-style: disc;
-}
-
-.graphdb-analysis-file-property-name {
-	font-weight: 500;
-}
-
-.graphdb-analysis-file-property-badge {
-	font-size: 0.85em;
-	color: var(--text-muted);
-	font-style: italic;
-}
-
-.graphdb-analysis-file-property-valid-icon {
-	display: inline-flex;
-	width: 14px;
-	height: 14px;
-	margin-left: 4px;
-	color: var(--text-success);
-}
-
-/* Table validation column */
-.graphdb-analysis-row-file-property {
-	background-color: var(--background-secondary);
-}
-
-.graphdb-analysis-validation-valid {
-	color: var(--text-success);
-	font-weight: 500;
-	display: flex;
-	align-items: center;
-	gap: 4px;
-}
-
-.graphdb-analysis-validation-valid-icon {
-	display: inline-flex;
-	width: 14px;
-	height: 14px;
-	color: var(--text-success);
-}
-
-.graphdb-analysis-validation-issues {
-	color: var(--text-error);
-	font-weight: 500;
-}
-
-/* Status indicators */
-.graphdb-analysis-property-card-status {
-	display: inline-flex;
-	align-items: center;
-	margin-left: 8px;
-}
-
-.graphdb-analysis-property-card-status-check {
-	display: inline-flex;
-	width: 18px;
-	height: 18px;
-	color: var(--text-success);
-}
-
-.graphdb-analysis-property-card-status-error {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	padding: 2px 6px;
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-}
-
-.graphdb-analysis-property-card-status-error-icon {
-	display: inline-flex;
-	width: 16px;
-	height: 16px;
-	color: var(--text-error);
-}
-
-.graphdb-analysis-property-card-status-error-count {
-	font-size: 0.85em;
-	font-weight: 600;
-	color: var(--text-error);
-}
-
-/* Error section */
-.graphdb-analysis-property-card-error-section {
-	margin-top: 12px;
-	padding-top: 12px;
-	border-top: 1px solid var(--background-modifier-border);
-}
-
-.graphdb-analysis-property-card-error-header {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	cursor: pointer;
-	padding: 4px 8px;
-	margin: -4px -8px;
-	border-radius: 4px;
-	color: var(--text-error);
-	font-size: 0.9em;
-	font-weight: 500;
-	user-select: none;
-}
-
-.graphdb-analysis-property-card-error-header-clickable:hover {
-	background-color: var(--background-secondary);
-}
-
-.graphdb-analysis-property-card-error-header-icon {
-	display: inline-flex;
-	width: 14px;
-	height: 14px;
-	flex-shrink: 0;
-	transition: transform 0.2s ease;
-}
-
-.graphdb-analysis-property-card-error-header-text {
-	flex: 1;
-}
-
-.graphdb-analysis-property-card-error-list {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	margin-top: 8px;
-	padding: 8px;
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-	max-height: 400px;
-	overflow-y: auto;
-}
-
-.graphdb-analysis-property-card-error-list-hidden {
-	display: none;
-}
-
-.graphdb-analysis-property-card-error-item {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	padding: 8px;
-	background-color: var(--background-primary);
-	border-radius: 4px;
-	font-size: 0.85em;
-}
-
-.graphdb-analysis-property-card-error-file {
-	display: flex;
-	align-items: center;
-}
-
-.graphdb-analysis-property-card-error-file .internal-link {
-	color: var(--text-accent);
-	text-decoration: none;
-	cursor: pointer;
-}
-
-.graphdb-analysis-property-card-error-file .internal-link:hover {
-	text-decoration: underline;
-}
-
-.graphdb-analysis-property-card-error-file-missing {
-	color: var(--text-muted);
-	font-style: italic;
-}
-
-.graphdb-analysis-property-card-error-message {
-	color: var(--text-error);
-	font-size: 0.9em;
-}
-
-.graphdb-analysis-property-card-error-target {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	font-size: 0.85em;
-	color: var(--text-muted);
-	margin-top: 2px;
-}
-
-.graphdb-analysis-property-card-error-target-label {
-	font-weight: 500;
-}
-
-.graphdb-analysis-property-card-error-target .internal-link {
-	color: var(--text-accent);
-	text-decoration: none;
-	cursor: pointer;
-}
-
-.graphdb-analysis-property-card-error-target .internal-link:hover {
-	text-decoration: underline;
-}
-
-/* Migration results error sections */
-.graphdb-results-errors-section {
-	margin-top: 12px;
-}
-
-.graphdb-results-errors-section-title {
-	font-weight: 600;
-	margin-bottom: 8px;
-	color: var(--text-error);
-	font-size: 0.9em;
-}
-
-.graphdb-results-error-type {
-	font-size: 0.8em;
-	color: var(--text-muted);
-	font-style: italic;
-	margin-left: 8px;
-}
-
-/* New unified dashboard styles */
-.graphdb-dashboard-content {
-	display: flex;
-	flex-direction: column;
-	gap: 24px;
-}
-
-.graphdb-section-container {
-	padding: 16px;
-	background-color: var(--background-primary);
-	border-radius: 8px;
-	border: 1px solid var(--background-modifier-border);
-}
-
-.graphdb-section-title {
-	font-size: 1.2em;
-	font-weight: 600;
-	margin-bottom: 16px;
-	color: var(--text-normal);
-}
-
-/* Settings link */
-.graphdb-settings-link-container {
-	display: flex;
-	justify-content: flex-end;
-	margin-bottom: 16px;
-}
-
-.graphdb-settings-link {
-	display: flex;
-	justify-content: flex-end;
-}
-
-.graphdb-settings-link-button {
-	cursor: pointer;
-	opacity: 0.7;
-	transition: opacity 0.2s ease;
-}
-
-.graphdb-settings-link-button:hover {
-	opacity: 1;
-}
-
-/* Property mappings section */
-.graphdb-property-mappings-section {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-.graphdb-property-filters {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.graphdb-property-search {
-	width: 100%;
-}
-
-.graphdb-property-search-input {
+.graphdb-tab-search-input {
 	width: 100%;
 	padding: 8px 12px;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 4px;
 	background-color: var(--background-primary);
 	color: var(--text-normal);
-	font-size: 0.9em;
 }
 
-.graphdb-property-search-input:focus {
-	outline: 2px solid var(--interactive-accent);
-	outline-offset: 2px;
-	border-color: var(--interactive-accent);
-}
-
-.graphdb-property-filter-buttons {
+.graphdb-tab-filter {
 	display: flex;
-	flex-wrap: wrap;
+	align-items: center;
 	gap: 8px;
 }
 
-.graphdb-property-filter-button {
-	padding: 6px 12px;
+.graphdb-tab-filter-checkbox {
+	margin-right: 4px;
+	cursor: pointer;
+}
+
+.graphdb-tab-filter-select {
+	padding: 6px 10px;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 4px;
-	background-color: var(--background-secondary);
+	background-color: var(--background-primary);
 	color: var(--text-normal);
-	font-size: 0.9em;
 	cursor: pointer;
-	transition: all 0.2s ease;
 }
 
-.graphdb-property-filter-button:hover {
-	background-color: var(--background-modifier-hover);
-	border-color: var(--interactive-accent);
+.graphdb-tab-properties {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 }
 
-.graphdb-property-filter-button-active {
-	background-color: var(--interactive-accent);
-	color: var(--text-on-accent, white);
-	border-color: var(--interactive-accent);
+.graphdb-tab-loading,
+.graphdb-tab-empty,
+.graphdb-tab-error {
+	padding: 20px;
+	text-align: center;
+	color: var(--text-muted);
 }
 
-.graphdb-properties-container {
+.graphdb-tab-error {
+	color: var(--text-error);
+}
+
+/* Property Row */
+.graphdb-property-row {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.graphdb-property-row:hover {
+	background-color: var(--background-secondary);
+}
+
+.graphdb-property-row-enabled {
+	border-left: 4px solid var(--interactive-accent);
+	background-color: var(--background-secondary-alt);
+}
+
+.graphdb-property-row-disabled {
+	opacity: 0.6;
+	border-left: 4px solid var(--text-muted);
+}
+
+.graphdb-property-row-unmapped {
+	border-left: 4px solid transparent;
+}
+
+.graphdb-property-row-info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.graphdb-property-row-name {
+	font-weight: 600;
+	font-size: 1em;
+}
+
+.graphdb-property-row-details {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	display: flex;
+	gap: 8px;
+}
+
+.graphdb-property-row-status {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.graphdb-property-row-status-badge {
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 0.85em;
+	font-weight: 500;
+}
+
+.graphdb-property-row-status-mapped {
+	background-color: var(--background-modifier-success);
+	color: var(--text-success);
+}
+
+.graphdb-property-row-status-unmapped {
+	background-color: var(--background-modifier-border);
+	color: var(--text-muted);
+}
+
+.graphdb-property-row-status-wikilink {
+	background-color: var(--background-modifier-border-hover);
+	color: var(--text-normal);
+}
+
+.graphdb-property-row-status-disabled {
+	opacity: 0.6;
+	background-color: var(--background-modifier-border) !important;
+	color: var(--text-muted) !important;
+}
+
+.graphdb-property-row-status-enabled {
+	background-color: var(--background-modifier-success);
+	color: var(--text-success);
+}
+
+.graphdb-property-row-actions {
+	display: flex;
+	gap: 8px;
+}
+
+/* Label Rules */
+.graphdb-label-rules-container {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
 }
 
-.graphdb-properties-stats {
-	padding: 8px 12px;
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-	font-size: 0.9em;
-	color: var(--text-muted);
-	margin-bottom: 8px;
-}
-
-.graphdb-properties-list {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.graphdb-properties-empty,
-.graphdb-properties-stale {
-	padding: 16px;
-	text-align: center;
-	color: var(--text-muted);
-	font-style: italic;
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-}
-
-/* Property item styles */
-.graphdb-property-item {
-	padding: 12px;
-	background-color: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
-	transition: all 0.2s ease;
-}
-
-.graphdb-property-item:hover {
-	border-color: var(--interactive-accent);
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.graphdb-property-item-header {
+.graphdb-label-rule {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 12px;
-	padding: 4px 0;
-}
-
-.graphdb-property-item-header-clickable {
-	cursor: pointer;
-}
-
-.graphdb-property-item-header-left {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex: 1;
-	min-width: 0;
-}
-
-.graphdb-property-item-expand-icon {
-	display: inline-flex;
-	width: 18px;
-	height: 18px;
-	flex-shrink: 0;
-	color: var(--text-muted);
-	transition: transform 0.2s ease;
-}
-
-.graphdb-property-item-name {
-	font-weight: 600;
-	font-size: 1em;
-	color: var(--text-normal);
-}
-
-.graphdb-property-item-badges {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	flex-wrap: wrap;
-}
-
-.graphdb-property-item-badge {
-	padding: 2px 8px;
-	border-radius: 12px;
-	font-size: 0.75em;
-	font-weight: 500;
-	white-space: nowrap;
-}
-
-.graphdb-property-item-badge-mapped {
-	background-color: var(--background-modifier-border);
-	color: var(--text-normal);
-}
-
-.graphdb-property-item-badge-wikilink {
-	background-color: var(--background-modifier-border);
-	color: var(--text-accent);
-}
-
-.graphdb-property-item-badge-error {
-	background-color: var(--text-error);
-	color: var(--text-on-accent, white);
-}
-
-.graphdb-property-item-badge-warning {
-	background-color: var(--text-warning, #f59e0b);
-	color: var(--text-on-accent, white);
-}
-
-.graphdb-property-item-header-right {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex-shrink: 0;
-}
-
-.graphdb-property-item-expanded {
-	margin-top: 12px;
-	padding-top: 12px;
-	border-top: 1px solid var(--background-modifier-border);
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.graphdb-property-item-expanded-hidden {
-	display: none;
-}
-
-.graphdb-property-item-metadata {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	font-size: 0.9em;
-	color: var(--text-muted);
-}
-
-.graphdb-property-item-config,
-.graphdb-property-item-no-mapping,
-.graphdb-property-item-issues,
-.graphdb-property-item-errors {
+	gap: 16px;
 	padding: 12px;
-	background-color: var(--background-primary);
-	border-radius: 4px;
 	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
 }
 
-.graphdb-property-item-section-title {
-	font-weight: 600;
-	margin-bottom: 8px;
-	color: var(--text-normal);
-}
-
-.graphdb-property-item-issue {
-	padding: 6px 0;
-	font-size: 0.9em;
-}
-
-.graphdb-property-item-error {
+.graphdb-label-rule-info {
+	flex: 1;
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-	padding: 8px;
-	background-color: var(--background-secondary);
-	border-radius: 4px;
-	font-size: 0.85em;
 }
 
-.graphdb-property-item-error-file {
-	font-weight: 500;
-	color: var(--text-normal);
-}
-
-.graphdb-property-item-error-message {
-	color: var(--text-error);
-}
-
-.graphdb-property-item-actions {
-	display: flex;
-	gap: 8px;
-	margin-top: 8px;
-}
-
-/* Migration controls section - prominent */
-.graphdb-migration-section-prominent {
-	border: 2px solid var(--interactive-accent);
-	background-color: var(--background-secondary);
-}
-
-.graphdb-migration-controls-section {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.graphdb-migration-controls {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-}
-
-.graphdb-migration-start-button {
-	font-size: 1.1em;
-	padding: 12px 24px;
+.graphdb-label-rule-pattern {
 	font-weight: 600;
 }
 
-.graphdb-migration-progress {
-	margin-top: 8px;
-}
-
-.graphdb-migration-progress-text {
+.graphdb-label-rule-label {
 	color: var(--text-muted);
 	font-size: 0.9em;
 }
 
-.graphdb-migration-results {
-	margin-top: 12px;
+.graphdb-label-rule-toggle {
+	min-width: 100px;
 }
 
-.graphdb-migration-results .graphdb-results {
-	margin-top: 0;
-}
-
-/* Password prompt modal */
-.graphdb-password-prompt {
+/* Validation Modal */
+.graphdb-validation-modal {
 	padding: 20px;
 }
 
-.graphdb-password-prompt h2 {
-	margin-top: 0;
-	margin-bottom: 12px;
+.graphdb-validation-success {
+	color: var(--text-success);
+	font-weight: 600;
+	padding: 12px;
+	background-color: var(--background-modifier-success);
+	border-radius: 4px;
 }
 
-.graphdb-password-prompt-desc {
-	color: var(--text-muted);
-	font-size: 0.9em;
+.graphdb-validation-issues {
+	color: var(--text-error);
+	font-weight: 600;
+	padding: 12px;
+	background-color: var(--background-modifier-error);
+	border-radius: 4px;
 	margin-bottom: 16px;
 }
 
-.graphdb-password-prompt-buttons {
-	display: flex;
-	gap: 8px;
-	justify-content: flex-end;
-	margin-top: 16px;
+.graphdb-validation-issue {
+	padding: 8px;
+	margin-bottom: 8px;
+	border-left: 3px solid var(--text-error);
+	padding-left: 12px;
 }
 
+.graphdb-validation-files {
+	max-height: 300px;
+	overflow-y: auto;
+	margin-top: 12px;
+}
+
+.graphdb-validation-file {
+	padding: 4px 8px;
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
 

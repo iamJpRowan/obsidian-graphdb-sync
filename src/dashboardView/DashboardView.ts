@@ -1,37 +1,27 @@
-import { ItemView, Notice, WorkspaceLeaf } from "obsidian"
+import { ItemView, WorkspaceLeaf, Modal, Notice, App } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
-import { StateService, type PluginState } from "../services/StateService"
-import { VaultAnalysisService } from "../services/VaultAnalysisService"
-import type { MigrationProgress } from "../services/MigrationService"
-import type { AnalysisProgress } from "../types"
-import { MigrationTab } from "./components/MigrationTab"
-import { ConfigurationTab } from "./components/ConfigurationTab"
+import { ConfigurationTabs } from "./ConfigurationTabs"
+import { MigrationPanel } from "./MigrationPanel"
+import { PropertyValidationService } from "../services/PropertyValidationService"
+import { MigrationService } from "../services/MigrationService"
+import { CredentialService } from "../services/CredentialService"
+import { getVaultPath } from "../utils/obsidianApi"
+import { DEFAULT_SETTINGS } from "../types"
+import { PasswordPrompt } from "./components/PasswordPrompt"
+import type { PropertyInfo, ValidationResult } from "../types"
+import "./dashboardView.css"
 
-export const DASHBOARD_VIEW_TYPE = "graphdb-sync-dashboard"
+export const DASHBOARD_VIEW_TYPE_V2 = "graphdb-sync-dashboard"
 
 /**
- * View for displaying migration status and results
+ * New simplified dashboard view
+ * Organized around 3 configuration types: Relationships, Node Properties, Labels
  */
-export class DashboardView extends ItemView {
+export class DashboardViewV2 extends ItemView {
 	plugin: GraphDBSyncPlugin
-	private tabsContainer: HTMLElement | null = null
-	private tabButtonsContainer: HTMLElement | null = null
-	private tabContentContainer: HTMLElement | null = null
-	private migrationTabContent: HTMLElement | null = null
-	private analysisTabContent: HTMLElement | null = null
-	private activeTab: "migration" | "analysis" = "analysis"
-	private unsubscribeState: (() => void) | null = null
-	private lastMigrationState: {
-		running: boolean
-		paused: boolean
-		cancelled: boolean
-	} | null = null
-	private lastIsReady: boolean | null = null
-	private isAnalyzing: boolean = false
-	private currentAnalysisProgress: AnalysisProgress | null = null
-	private hasRunInitialAnalysis: boolean = false
-	private migrationTab: MigrationTab | null = null
-	private configurationTab: ConfigurationTab | null = null
+	private contentContainer: HTMLElement | null = null
+	private migrationPanel: MigrationPanel | null = null
+	private configurationTabs: ConfigurationTabs | null = null
 
 	constructor(leaf: WorkspaceLeaf, plugin: GraphDBSyncPlugin) {
 		super(leaf)
@@ -39,11 +29,11 @@ export class DashboardView extends ItemView {
 	}
 
 	getViewType(): string {
-		return DASHBOARD_VIEW_TYPE
+		return DASHBOARD_VIEW_TYPE_V2
 	}
 
 	getDisplayText(): string {
-		return "GraphDB Sync Status"
+		return "GraphDB Sync"
 	}
 
 	getIcon(): string {
@@ -52,278 +42,183 @@ export class DashboardView extends ItemView {
 
 	async onOpen(): Promise<void> {
 		this.render()
-
-		// Subscribe to state changes (callback is called immediately with current state)
-		this.unsubscribeState = StateService.subscribe("all", (state: PluginState) => {
-			this.updateStatus()
-			this.updateProgress(state.migration.progress)
-			
-			// Track both migration state and isReady to update controls when either changes
-			const migrationState = {
-				running: state.migration.running,
-				paused: state.migration.paused,
-				cancelled: state.migration.cancelled,
-			}
-			
-			// Initialize state tracking on first callback (from subscription)
-			if (!this.lastMigrationState) {
-				this.lastMigrationState = migrationState
-				this.lastIsReady = state.isReady
-				// Update controls with latest state to ensure button is enabled correctly
-				this.updateControls()
-				
-				// Auto-run analysis when plugin is ready (only once, on initial view open)
-				if (state.isReady && !this.hasRunInitialAnalysis) {
-					this.hasRunInitialAnalysis = true
-					// Run analysis in background (don't await)
-					this.startAnalysis().catch(() => {
-						// Silently fail - analysis will be available on next open
-					})
-				}
-				
-				return
-			}
-			
-			// Update controls when migration state OR isReady changes
-			const migrationStateChanged =
-				this.lastMigrationState.running !== migrationState.running ||
-				this.lastMigrationState.paused !== migrationState.paused ||
-				this.lastMigrationState.cancelled !== migrationState.cancelled
-			
-			const isReadyChanged = this.lastIsReady !== state.isReady
-			
-			if (migrationStateChanged || isReadyChanged) {
-				this.lastMigrationState = migrationState
-				this.lastIsReady = state.isReady
-				this.updateControls()
-				this.updateStatus()
-			}
-		})
 	}
 
 	async onClose(): Promise<void> {
-		// Unsubscribe from state changes
-		if (this.unsubscribeState) {
-			this.unsubscribeState()
-			this.unsubscribeState = null
+		// Cleanup
+		if (this.migrationPanel) {
+			this.migrationPanel.destroy()
 		}
-
-		// Cleanup tabs
-		if (this.configurationTab) {
-			this.configurationTab.destroy()
-			this.configurationTab = null
+		if (this.configurationTabs) {
+			this.configurationTabs.destroy()
 		}
 	}
 
-	/**
-	 * Renders the view content
-	 */
 	private render(): void {
 		const { contentEl } = this
 		contentEl.empty()
-		contentEl.addClass("graphdb-sync-dashboard-view")
+		contentEl.addClass("graphdb-dashboard-v2")
 
-		// Create tabs container
-		this.tabsContainer = contentEl.createDiv("graphdb-tabs-container")
-		
-		// Tab buttons
-		this.tabButtonsContainer = this.tabsContainer.createDiv("graphdb-tab-buttons")
-		const migrationTabBtn = this.tabButtonsContainer.createEl("button", {
-			text: "Migration",
-			cls: "graphdb-tab-button",
-		})
-		migrationTabBtn.setAttribute("data-tab", "migration")
-		migrationTabBtn.addEventListener("click", () => {
-			this.switchTab("migration")
-		})
+		// Main content container
+		this.contentContainer = contentEl.createDiv("graphdb-dashboard-v2-content")
 
-		const analysisTabBtn = this.tabButtonsContainer.createEl("button", {
-			text: "Configuration",
-			cls: "graphdb-tab-button graphdb-tab-button-active",
-		})
-		analysisTabBtn.setAttribute("data-tab", "analysis")
-		analysisTabBtn.addEventListener("click", () => {
-			this.switchTab("analysis")
-		})
+		// Migration Panel (settings cog is inside it)
+		const migrationContainer = this.contentContainer.createDiv("graphdb-migration-panel-container")
+		this.migrationPanel = new MigrationPanel(migrationContainer, this.plugin)
 
-		// Tab content container
-		this.tabContentContainer = this.tabsContainer.createDiv("graphdb-tab-content")
-
-		// Migration tab content
-		this.migrationTabContent = this.tabContentContainer.createDiv(
-			"graphdb-tab-pane"
+		// Configuration Tabs
+		const configContainer = this.contentContainer.createDiv("graphdb-configuration-tabs-container")
+		this.configurationTabs = new ConfigurationTabs(
+			configContainer,
+			this.plugin,
+			{
+				onConfigure: (property) => this.handleConfigure(property),
+				onValidate: (property) => this.handleValidate(property),
+				onMigrate: (property) => this.handleMigrate(property),
+			}
 		)
-		this.migrationTabContent.setAttribute("data-tab", "migration")
-		this.migrationTab = new MigrationTab(this.migrationTabContent, this.plugin, this.app)
-		this.migrationTab.render()
-
-		// Analysis tab content (Configuration tab - active by default)
-		this.analysisTabContent = this.tabContentContainer.createDiv(
-			"graphdb-tab-pane graphdb-tab-pane-active"
-		)
-		this.analysisTabContent.setAttribute("data-tab", "analysis")
-		this.configurationTab = new ConfigurationTab(this.analysisTabContent, this.plugin)
-		this.configurationTab.render()
-		this.configurationTab.setRefreshButtonHandler(() => this.startAnalysis())
-	}
-
-	/**
-	 * Switches between tabs
-	 */
-	private switchTab(tab: "migration" | "analysis"): void {
-		this.activeTab = tab
-
-		// Update tab buttons
-		if (this.tabButtonsContainer) {
-			const buttons = this.tabButtonsContainer.querySelectorAll(".graphdb-tab-button")
-			buttons.forEach((btn) => {
-				if (btn.getAttribute("data-tab") === tab) {
-					btn.addClass("graphdb-tab-button-active")
-				} else {
-					btn.removeClass("graphdb-tab-button-active")
-				}
-			})
 		}
 
-		// Update tab panes
-		if (this.tabContentContainer) {
-			const panes = this.tabContentContainer.querySelectorAll(".graphdb-tab-pane")
-			panes.forEach((pane) => {
-				if (pane.getAttribute("data-tab") === tab) {
-					pane.addClass("graphdb-tab-pane-active")
-				} else {
-					pane.removeClass("graphdb-tab-pane-active")
-				}
-			})
+	private async handleConfigure(property: PropertyInfo): Promise<void> {
+		// TODO: Open configuration modal
+		// For now, just show a notice
+		new Notice(`Configure ${property.name} - Modal coming soon`)
 		}
+
+	private async handleValidate(property: PropertyInfo): Promise<void> {
+		try {
+			const result = await PropertyValidationService.validateProperty(
+				this.plugin.app,
+				property.name
+			)
+
+			// Show validation results in a modal
+			const modal = new ValidationResultsModal(this.plugin.app, property, result)
+			modal.open()
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			new Notice(`Validation failed: ${errorMessage}`)
+	}
 	}
 
-	/**
-	 * Updates the status display (delegates to MigrationTab)
-	 */
-	updateStatus(): void {
-		if (this.migrationTab) {
-			this.migrationTab.updateStatus()
-		}
-	}
-
-	/**
-	 * Updates the progress display (delegates to MigrationTab)
-	 */
-	updateProgress(progress: MigrationProgress | null): void {
-		if (this.migrationTab) {
-			this.migrationTab.updateProgress(progress)
-		}
-	}
-
-	/**
-	 * Updates the results display (delegates to MigrationTab)
-	 */
-	updateResults(): void {
-		if (this.migrationTab) {
-			this.migrationTab.updateResults()
-		}
-	}
-
-	/**
-	 * Updates the controls display (delegates to MigrationTab)
-	 */
-	updateControls(): void {
-		if (this.migrationTab) {
-			this.migrationTab.updateControls()
-		}
-	}
-
-	/**
-	 * Starts a migration (delegates to MigrationTab)
-	 */
-	async startMigration(): Promise<void> {
-		if (this.migrationTab) {
-			await this.migrationTab.startMigration()
-		}
-	}
-
-	/**
-	 * Updates the analysis progress display (delegates to ConfigurationTab)
-	 */
-	updateAnalysisProgress(progress: AnalysisProgress | null): void {
-		if (this.configurationTab) {
-			this.configurationTab.updateAnalysisProgress(progress)
-		}
-	}
-
-	/**
-	 * Updates the analysis results display (delegates to ConfigurationTab)
-	 */
-	updateAnalysis(): void {
-		if (this.configurationTab) {
-			this.configurationTab.updateAnalysis()
-		}
-	}
-
-
-	/**
-	 * Refreshes the view (called externally)
-	 */
-	refresh(): void {
-		const state = StateService.getState()
-		this.updateStatus()
-		this.updateProgress(state.migration.progress)
-		this.updateResults()
-		this.updateAnalysis()
-		this.updateAnalysisProgress(this.currentAnalysisProgress)
-		this.updateControls()
-	}
-
-	/**
-	 * Public method to start analysis (for external calls)
-	 */
-	async startAnalysis(): Promise<void> {
-		if (this.isAnalyzing) {
-			new Notice("Analysis already in progress")
+	private async handleMigrate(property: PropertyInfo): Promise<void> {
+		if (MigrationService.isRunning()) {
+			new Notice("Migration already in progress")
 			return
 		}
 
-		this.isAnalyzing = true
-		if (this.configurationTab) {
-			this.configurationTab.updateRefreshButtonState(true)
+		// Get password
+		let password = CredentialService.getPassword()
+		if (!password) {
+			password = await PasswordPrompt.prompt(this.plugin)
+			if (!password) {
+				return
+			}
 		}
-		this.updateAnalysis() // Update to show progress
+
+		const uri = this.plugin.settings.neo4jUri || DEFAULT_SETTINGS.neo4jUri
+		const username = this.plugin.settings.neo4jUsername || DEFAULT_SETTINGS.neo4jUsername
+		const vaultPath = getVaultPath(this.plugin.app)
 
 		try {
-			const result = await VaultAnalysisService.analyze(
-				this.app,
-				(progress) => {
-					this.currentAnalysisProgress = progress
-					this.updateAnalysisProgress(progress)
-				}
+			const result = await MigrationService.migrateProperty(
+				property.name,
+				vaultPath,
+				uri,
+				{ username, password },
+				() => {
+					// Progress updates
+				},
+				this.plugin.app,
+				this.plugin.settings
 			)
 
-			// Save result to settings
-			this.plugin.settings.lastAnalysisResult = result
+			// Save result
+			this.plugin.settings.lastMigrationResult = {
+				...result,
+				timestamp: Date.now(),
+			}
 			await this.plugin.saveSettings()
 
-			// Update display
-			this.updateAnalysis()
-			this.updateAnalysisProgress(null)
+			if (result.success) {
+				new Notice(`Property migration completed: ${property.name}`)
+			} else {
+				new Notice(`Property migration failed: ${result.message || "Unknown error"}`)
+			}
 
-			new Notice(
-				`Analysis complete: ${result.properties.length} properties found in ${result.filesWithFrontMatter} files`
-			)
+			// Refresh tabs to show updated status
+			if (this.configurationTabs) {
+				this.configurationTabs.refresh()
+			}
 		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : String(error)
-			new Notice(`Analysis failed: ${errorMessage}`)
-			this.updateAnalysisProgress(null)
-			this.updateAnalysis()
-		} finally {
-			this.isAnalyzing = false
-			this.currentAnalysisProgress = null
-			if (this.configurationTab) {
-				this.configurationTab.updateRefreshButtonState(false)
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			new Notice(`Property migration failed: ${errorMessage}`)
+		}
+	}
+}
+
+/**
+ * Modal for displaying validation results
+ */
+class ValidationResultsModal extends Modal {
+	constructor(
+		app: App,
+		private property: PropertyInfo,
+		private result: ValidationResult
+	) {
+		super(app)
+	}
+
+	onOpen(): void {
+		const { contentEl } = this
+		contentEl.empty()
+		contentEl.addClass("graphdb-validation-modal")
+
+		contentEl.createEl("h2", {
+			text: `Validation: ${this.property.name}`,
+		})
+
+		if (this.result.isValid) {
+			contentEl.createDiv({
+				text: "✓ No validation issues found",
+				cls: "graphdb-validation-success",
+			})
+		} else {
+			contentEl.createDiv({
+				text: `⚠ ${this.result.issues.length} issue(s) found`,
+				cls: "graphdb-validation-issues",
+			})
+
+			this.result.issues.forEach((issue) => {
+				const issueEl = contentEl.createDiv("graphdb-validation-issue")
+				issueEl.createDiv({
+					text: `${issue.severity === "error" ? "✗" : "⚠"} ${issue.message}`,
+				})
+			})
+
+			if (this.result.filesWithIssues.length > 0) {
+				contentEl.createEl("h3", {
+					text: "Files with Issues:",
+				})
+				const filesList = contentEl.createDiv("graphdb-validation-files")
+				this.result.filesWithIssues.slice(0, 10).forEach((fileIssue) => {
+					filesList.createDiv({
+						text: fileIssue.filePath,
+						cls: "graphdb-validation-file",
+					})
+				})
+				if (this.result.filesWithIssues.length > 10) {
+					filesList.createDiv({
+						text: `... and ${this.result.filesWithIssues.length - 10} more`,
+					})
 			}
 		}
 	}
+	}
 
+	onClose(): void {
+		const { contentEl } = this
+		contentEl.empty()
+	}
 }
 

@@ -12,8 +12,8 @@ import type {
 	PropertyErrorStats,
 } from "../types"
 import { StateService } from "./StateService"
+import { ConfigurationService } from "./ConfigurationService"
 import { extractWikilinkTargets } from "../utils/wikilinkExtractor"
-import { getRelationshipConfig } from "../utils/propertyMappingHelpers"
 import { extractFrontMatter, getFileFromPath } from "../utils/frontMatterExtractor"
 import { categorizeError } from "../utils/errorCategorizer"
 
@@ -217,15 +217,14 @@ export class MigrationService {
 		const errors: RelationshipCreationError[] = []
 
 		// Get all enabled relationship mappings
-		const relationshipMappings = Object.entries(settings.propertyMappings || {})
-			.map(([propertyName, mapping]) => {
-				const relConfig = getRelationshipConfig(settings, propertyName)
-				if (relConfig) {
-					return { propertyName, config: relConfig }
-				}
-				return null
-			})
-			.filter((m): m is { propertyName: string; config: RelationshipMappingConfig } => m !== null)
+		const enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
+		const relationshipMappings = enabledMappings.map((mapping) => ({
+			propertyName: mapping.propertyName,
+			config: {
+				relationshipType: mapping.relationshipType,
+				direction: mapping.direction,
+			} as RelationshipMappingConfig,
+		}))
 
 		if (relationshipMappings.length === 0) {
 			// No relationship mappings configured
@@ -576,15 +575,14 @@ export class MigrationService {
 
 			// Initialize property stats for all enabled properties
 			const propertyStats: Record<string, PropertyErrorStats> = {}
-			if (settings?.propertyMappings) {
-				for (const [propertyName, mapping] of Object.entries(settings.propertyMappings)) {
-					if (mapping.enabled) {
-						propertyStats[propertyName] = {
-							propertyName,
-							successCount: 0,
-							errorCount: 0,
-							fileErrors: [],
-						}
+			if (settings) {
+				const enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
+				for (const mapping of enabledMappings) {
+					propertyStats[mapping.propertyName] = {
+						propertyName: mapping.propertyName,
+						successCount: 0,
+						errorCount: 0,
+						fileErrors: [],
 					}
 				}
 			}
@@ -800,16 +798,13 @@ export class MigrationService {
 
 			// Initialize property stats for all enabled properties
 			const propertyStats: Record<string, PropertyErrorStats> = {}
-			if (settings.propertyMappings) {
-				for (const [propertyName, mapping] of Object.entries(settings.propertyMappings)) {
-					if (mapping.enabled) {
-						propertyStats[propertyName] = {
-							propertyName,
-							successCount: 0,
-							errorCount: 0,
-							fileErrors: [],
-						}
-					}
+			const enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
+			for (const mapping of enabledMappings) {
+				propertyStats[mapping.propertyName] = {
+					propertyName: mapping.propertyName,
+					successCount: 0,
+					errorCount: 0,
+					fileErrors: [],
 				}
 			}
 
@@ -1063,7 +1058,7 @@ export class MigrationService {
 
 			// Initialize property stats for this property only
 			const propertyStats: Record<string, PropertyErrorStats> = {}
-			const mapping = settings.propertyMappings?.[propertyName]
+			const mapping = ConfigurationService.getRelationshipMapping(settings, propertyName)
 			if (mapping?.enabled) {
 				propertyStats[propertyName] = {
 					propertyName,
@@ -1086,13 +1081,15 @@ export class MigrationService {
 			let relationshipSuccessCount = 0
 			let relationshipErrorCount = 0
 
-			if (mapping?.enabled && mapping.mappingType === "relationship") {
-				const relConfig = getRelationshipConfig(settings, propertyName)
-				if (relConfig) {
-					const tx = session.beginTransaction()
-					this.currentMigration!.transaction = tx
+			if (mapping?.enabled) {
+				const relConfig: RelationshipMappingConfig = {
+					relationshipType: mapping.relationshipType,
+					direction: mapping.direction,
+				}
+				const tx = session.beginTransaction()
+				this.currentMigration!.transaction = tx
 
-					try {
+				try {
 						for (const filePath of filesWithProperty) {
 							if (this.currentMigration?.cancelled) {
 								await tx.rollback()
@@ -1230,13 +1227,12 @@ export class MigrationService {
 							}
 						}
 
-						await tx.commit()
-						this.currentMigration!.transaction = null
-					} catch (error) {
-						await tx.rollback()
-						this.currentMigration!.transaction = null
-						throw error
-					}
+					await tx.commit()
+					this.currentMigration!.transaction = null
+				} catch (error) {
+					await tx.rollback()
+					this.currentMigration!.transaction = null
+					throw error
 				}
 			}
 
@@ -1367,16 +1363,13 @@ export class MigrationService {
 
 			// Initialize property stats for all enabled properties
 			const propertyStats: Record<string, PropertyErrorStats> = {}
-			if (settings.propertyMappings) {
-				for (const [propertyName, mapping] of Object.entries(settings.propertyMappings)) {
-					if (mapping.enabled) {
-						propertyStats[propertyName] = {
-							propertyName,
-							successCount: 0,
-							errorCount: 0,
-							fileErrors: [],
-						}
-					}
+			const enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
+			for (const mapping of enabledMappings) {
+				propertyStats[mapping.propertyName] = {
+					propertyName: mapping.propertyName,
+					successCount: 0,
+					errorCount: 0,
+					fileErrors: [],
 				}
 			}
 
