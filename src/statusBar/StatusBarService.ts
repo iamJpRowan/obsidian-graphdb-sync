@@ -55,27 +55,6 @@ export class StatusBarService {
 		const menu = new Menu()
 		const state = StateService.getState()
 
-		// Connection status
-		menu.addItem((item) => {
-			let statusText = "Connection: "
-			if (state.connection.status === "connected") {
-				statusText += "Connected"
-				item.setIcon("check-circle")
-			} else if (state.connection.status === "testing") {
-				statusText += "Testing..."
-				item.setIcon("loader")
-			} else if (state.connection.status === "error") {
-				statusText += state.connection.error || "Error"
-				item.setIcon("alert-circle")
-			} else {
-				statusText += "Unknown"
-			}
-			item.setTitle(statusText)
-			item.setDisabled(true)
-		})
-
-		menu.addSeparator()
-
 		// Migration status
 		if (state.migration.running) {
 			menu.addItem((item) => {
@@ -137,7 +116,6 @@ export class StatusBarService {
 			menu.addItem((item) => {
 				item.setTitle("Start migration")
 				item.setIcon("play")
-				item.setDisabled(!state.isReady)
 				item.onClick(async () => {
 					await plugin.startMigration()
 				})
@@ -182,8 +160,6 @@ export class StatusBarService {
 		if (state.migration.running) {
 			colorClass = "graphdb-status-warning"
 			shouldAnimate = !state.migration.paused
-		} else if (state.connection.status === "error") {
-			colorClass = "graphdb-status-error"
 		} else if (
 			settings.lastMigrationResult &&
 			!settings.lastMigrationResult.success

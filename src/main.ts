@@ -1,5 +1,4 @@
 import { Plugin, WorkspaceLeaf } from "obsidian"
-import { SettingsTab } from "./settingsTab"
 import { CredentialService } from "./services/CredentialService"
 import { MigrationService } from "./services/MigrationService"
 import { StateService } from "./services/StateService"
@@ -8,6 +7,7 @@ import {
 	DashboardView,
 	DASHBOARD_VIEW_TYPE,
 } from "./dashboardView/DashboardView"
+import { SettingsTab } from "./settingsTab"
 import { DEFAULT_SETTINGS, type PluginSettings } from "./types"
 
 export const VIEW_TYPE_GRAPHDB_SYNC = DASHBOARD_VIEW_TYPE
@@ -70,9 +70,6 @@ export default class GraphDBSyncPlugin extends Plugin {
 
 		// Initial status bar update
 		this.statusBarService.update(this.settings)
-
-		// Auto-test connection on load
-		StateService.testConnection(this.settings)
 	}
 
 	onunload() {
@@ -137,13 +134,8 @@ export default class GraphDBSyncPlugin extends Plugin {
 		// Open view if not already open
 		await this.activateViewInternal()
 
-		// Get the view instance and trigger migration
-		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_GRAPHDB_SYNC)
-		if (leaves.length > 0) {
-			const view = leaves[0].view as DashboardView
-			// Call a public method on the view to start migration
-			await view.startMigration()
-		}
+		// Migration is now handled within the dashboard view
+		// The user can start migration from the Migration Controls section
 	}
 
 
