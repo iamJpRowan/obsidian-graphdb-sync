@@ -4,10 +4,10 @@ export interface RelationshipMappingConfig {
 	direction: "outgoing" | "incoming"
 }
 
-// Node property mapping configuration (placeholder for future implementation)
+// Node property mapping configuration
 export interface NodePropertyMappingConfig {
-	// TODO: Define structure when node property feature is implemented
-	[key: string]: unknown
+	nodePropertyType: "boolean" | "integer" | "float" | "date" | "datetime" | "string" | "list_string"
+	nodePropertyName: string
 }
 
 // Property mapping for a single property
@@ -274,11 +274,12 @@ export interface MigrationResult {
 	}
 }
 
-// Node property mapping (placeholder - same structure as RelationshipMapping for now)
+// Node property mapping
 export interface NodePropertyMapping {
 	propertyName: string
+	nodePropertyType: "boolean" | "integer" | "float" | "date" | "datetime" | "string" | "list_string"
+	nodePropertyName: string
 	enabled: boolean
-	// TODO: Add configuration when implemented
 }
 
 // Label rule (placeholder for future implementation)

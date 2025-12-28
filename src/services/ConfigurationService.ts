@@ -93,9 +93,12 @@ export class ConfigurationService {
 		const propertyMappings = settings.propertyMappings || {}
 
 		for (const [propertyName, mapping] of Object.entries(propertyMappings)) {
-			if (mapping.mappingType === "node_property") {
+			if (mapping.mappingType === "node_property" && mapping.config && "nodePropertyType" in mapping.config) {
+				const config = mapping.config as { nodePropertyType: string; nodePropertyName?: string }
 				mappings.push({
 					propertyName,
+					nodePropertyType: config.nodePropertyType as "boolean" | "integer" | "float" | "date" | "datetime" | "string" | "list_string",
+					nodePropertyName: config.nodePropertyName || propertyName,
 					enabled: mapping.enabled || false,
 				})
 			}
@@ -106,9 +109,12 @@ export class ConfigurationService {
 
 	static getNodePropertyMapping(settings: PluginSettings, propertyName: string): NodePropertyMapping | null {
 		const mapping = settings.propertyMappings?.[propertyName]
-		if (mapping?.mappingType === "node_property") {
+		if (mapping?.mappingType === "node_property" && mapping.config && "nodePropertyType" in mapping.config) {
+			const config = mapping.config as { nodePropertyType: string; nodePropertyName?: string }
 			return {
 				propertyName,
+				nodePropertyType: config.nodePropertyType as "boolean" | "integer" | "float" | "date" | "datetime" | "string" | "list_string",
+				nodePropertyName: config.nodePropertyName || propertyName,
 				enabled: mapping.enabled || false,
 			}
 		}
@@ -127,7 +133,10 @@ export class ConfigurationService {
 		plugin.settings.propertyMappings[propertyName] = {
 			propertyName,
 			mappingType: "node_property",
-			config: {},
+			config: {
+				nodePropertyType: mapping.nodePropertyType,
+				nodePropertyName: mapping.nodePropertyName,
+			},
 			enabled: mapping.enabled,
 		}
 

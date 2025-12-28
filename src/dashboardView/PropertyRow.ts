@@ -1,12 +1,14 @@
 import { setIcon, Notice, Setting } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
-import type { PropertyInfo, RelationshipMapping } from "../types"
+import type { PropertyInfo, RelationshipMapping, NodePropertyMapping } from "../types"
 import { ConfigurationService } from "../services/ConfigurationService"
 import { RelationshipValidationService } from "../services/RelationshipValidationService"
+import { NodePropertyValidationService } from "../services/NodePropertyValidationService"
 import type { ValidationResult } from "../types"
 import { ValidationBadge } from "./components/ValidationBadge"
 import { ValidationIssuesModal } from "./components/ValidationIssuesModal"
 import { RelationshipConfigSection } from "./components/RelationshipConfigSection"
+import { NodePropertyConfigSection } from "./components/NodePropertyConfigSection"
 
 /**
  * Property row component with inline configuration
@@ -23,6 +25,7 @@ export class PropertyRow {
 	private additionalItemsContainer: HTMLElement | null = null
 	private diagramEl: HTMLElement | null = null
 	private relationshipConfigSection: RelationshipConfigSection | null = null
+	private nodePropertyConfigSection: NodePropertyConfigSection | null = null
 	private mappingTypeSelect: HTMLSelectElement | null = null
 	private validationResult: ValidationResult | null = null
 	private validationBadge: ValidationBadge | null = null
@@ -108,11 +111,11 @@ export class PropertyRow {
 		)
 
 		// Determine current mapping type
-		let currentMappingType: "none" | "relationship" | "node_property" = "none"
+		let currentMappingType: "none" | "relationship" | "boolean" | "integer" | "float" | "date" | "datetime" | "string" | "list_string" = "none"
 		if (currentMapping) {
 			currentMappingType = "relationship"
 		} else if (nodePropertyMapping) {
-			currentMappingType = "node_property"
+			currentMappingType = nodePropertyMapping.nodePropertyType
 		}
 
 		// Mapping type selector
@@ -129,7 +132,9 @@ export class PropertyRow {
 		this.mappingTypeSelect.createEl("option", { text: "Integer", value: "integer" })
 		this.mappingTypeSelect.createEl("option", { text: "Float", value: "float" })
 		this.mappingTypeSelect.createEl("option", { text: "Date", value: "date" })
+		this.mappingTypeSelect.createEl("option", { text: "DateTime", value: "datetime" })
 		this.mappingTypeSelect.createEl("option", { text: "String", value: "string" })
+		this.mappingTypeSelect.createEl("option", { text: "List (String)", value: "list_string" })
 		this.mappingTypeSelect.value = currentMappingType
 		this.mappingTypeSelect.addEventListener("change", () => {
 			this.handleMappingTypeChange()
@@ -168,10 +173,21 @@ export class PropertyRow {
 		if (currentMappingType === "relationship") {
 			this.renderRelationshipConfig(currentMapping)
 			this.renderRelationshipDiagram(currentMapping)
-		} else {
+		} else if (currentMappingType !== "none") {
+			// Node property configuration
+			this.renderNodePropertyConfig(nodePropertyMapping)
+			this.renderNodePropertyName(nodePropertyMapping)
 			// Clean up relationship config section if switching away
 			if (this.relationshipConfigSection) {
 				this.relationshipConfigSection = null
+			}
+		} else {
+			// Clean up both config sections if switching to none
+			if (this.relationshipConfigSection) {
+				this.relationshipConfigSection = null
+			}
+			if (this.nodePropertyConfigSection) {
+				this.nodePropertyConfigSection = null
 			}
 		}
 
@@ -233,14 +249,68 @@ export class PropertyRow {
 		this.relationshipConfigSection.updateDiagram(this.diagramEl)
 	}
 
+	private renderNodePropertyConfig(mapping: NodePropertyMapping | null): void {
+		if (!this.configContainer) return
+
+		// Create container for node property config
+		const nodePropertyContainer = this.configContainer.createDiv("graphdb-property-config-section")
+		
+		// Create and render node property config section
+		this.nodePropertyConfigSection = new NodePropertyConfigSection(
+			nodePropertyContainer,
+			this.plugin,
+			this.property.name,
+			{
+				onUpdate: () => {
+					// Update display when node property config changes
+					const updatedMapping = ConfigurationService.getNodePropertyMapping(
+						this.plugin.settings,
+						this.property.name
+					)
+					this.renderNodePropertyName(updatedMapping)
+				},
+			}
+		)
+		this.nodePropertyConfigSection.render(mapping)
+	}
+
+	private renderNodePropertyName(mapping: NodePropertyMapping | null): void {
+		if (!this.additionalItemsContainer) return
+
+		// Remove existing diagram if present
+		if (this.diagramEl) {
+			this.diagramEl.remove()
+			this.diagramEl = null
+		}
+
+		// Create display in additional items container (same location as relationship diagram)
+		this.diagramEl = this.additionalItemsContainer.createSpan("graphdb-property-row-diagram")
+		
+		// Update display with node property name and icon
+		if (mapping && mapping.nodePropertyName) {
+			// Create icon for the mapping type
+			const iconEl = this.diagramEl.createSpan("graphdb-property-row-diagram-icon")
+			setIcon(iconEl, this.getNodePropertyTypeIcon(mapping.nodePropertyType))
+			
+			// Add the property name with spacing
+			this.diagramEl.createSpan({ text: mapping.nodePropertyName, cls: "graphdb-property-row-diagram-text" })
+		} else {
+			this.diagramEl.setText("")
+		}
+	}
+
 	private async handleValidate(): Promise<void> {
 		const currentMapping = ConfigurationService.getRelationshipMapping(
 			this.plugin.settings,
 			this.property.name
 		)
+		const nodePropertyMapping = ConfigurationService.getNodePropertyMapping(
+			this.plugin.settings,
+			this.property.name
+		)
 
-		if (!currentMapping) {
-			new Notice("Please configure a relationship mapping first")
+		if (!currentMapping && !nodePropertyMapping) {
+			new Notice("Please configure a mapping first")
 			return
 		}
 
@@ -249,10 +319,18 @@ export class PropertyRow {
 		this.updateValidationBadge()
 
 		try {
-			this.validationResult = await RelationshipValidationService.validateRelationshipProperty(
-				this.plugin.app,
-				this.property.name
-			)
+			if (currentMapping) {
+				this.validationResult = await RelationshipValidationService.validateRelationshipProperty(
+					this.plugin.app,
+					this.property.name
+				)
+			} else if (nodePropertyMapping) {
+				this.validationResult = await NodePropertyValidationService.validateNodeProperty(
+					this.plugin.app,
+					this.property.name,
+					this.plugin.settings
+				)
+			}
 		} catch (error) {
 			new Notice(`Validation error: ${error instanceof Error ? error.message : String(error)}`)
 		} finally {
@@ -304,8 +382,8 @@ export class PropertyRow {
 		this.validationResult = null
 		this.isValidating = false
 
-		// Remove diagram if switching away from relationship
-		if (mappingType !== "relationship" && this.diagramEl) {
+		// Remove diagram if switching away from relationship or node property
+		if (mappingType === "none" && this.diagramEl) {
 			this.diagramEl.remove()
 			this.diagramEl = null
 		}
@@ -323,9 +401,12 @@ export class PropertyRow {
 				enabled: true,
 			})
 		} else {
-			// Create node property mapping
+			// Create node property mapping with the selected type
+			const nodePropertyType = mappingType as "boolean" | "integer" | "float" | "date" | "datetime" | "string" | "list_string"
 			ConfigurationService.saveNodePropertyMapping(this.plugin, this.property.name, {
 				propertyName: this.property.name,
+				nodePropertyType,
+				nodePropertyName: this.property.name,
 				enabled: true,
 			})
 		}
@@ -334,13 +415,19 @@ export class PropertyRow {
 		this.configContainer?.empty()
 		this.renderConfiguration()
 		
-		// Update diagram if relationship mapping
+		// Update diagram/display based on mapping type
 		if (mappingType === "relationship") {
 			const currentMapping = ConfigurationService.getRelationshipMapping(
 				this.plugin.settings,
 				this.property.name
 			)
 			this.renderRelationshipDiagram(currentMapping)
+		} else if (mappingType !== "none") {
+			const nodePropertyMapping = ConfigurationService.getNodePropertyMapping(
+				this.plugin.settings,
+				this.property.name
+			)
+			this.renderNodePropertyName(nodePropertyMapping)
 		}
 		
 		// Update row enabled state
@@ -411,6 +498,22 @@ export class PropertyRow {
 			unknown: "help-circle",
 		}
 		return widgetIconMap[this.property.type] || "file-text"
+	}
+
+	/**
+	 * Gets the icon for a node property mapping type
+	 */
+	private getNodePropertyTypeIcon(nodePropertyType: "boolean" | "integer" | "float" | "date" | "datetime" | "string" | "list_string"): string {
+		const iconMap: Record<string, string> = {
+			boolean: "check-square",
+			integer: "hash",
+			float: "hash",
+			date: "calendar",
+			datetime: "clock",
+			string: "type",
+			list_string: "list",
+		}
+		return iconMap[nodePropertyType] || "help-circle"
 	}
 
 	private toggleConfigPanel(): void {

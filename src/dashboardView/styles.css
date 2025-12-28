@@ -426,6 +426,23 @@
 	font-family: var(--font-monospace);
 	font-size: 0.85em;
 	color: var(--text-normal);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+
+.graphdb-property-row-diagram-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	color: var(--text-muted);
+}
+
+.graphdb-property-row-diagram-text {
+	color: var(--text-normal);
 }
 
 .graphdb-property-config-actions {
