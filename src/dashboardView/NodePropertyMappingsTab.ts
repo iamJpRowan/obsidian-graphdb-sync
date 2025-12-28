@@ -105,10 +105,7 @@ export class NodePropertyMappingsTab {
 			const row = new PropertyRow(
 				this.propertiesContainer!,
 				this.plugin,
-				property,
-				{
-					onConfigure: this.onConfigure,
-				}
+				property
 			)
 			this.propertyRows.push(row)
 		})

@@ -58,6 +58,46 @@ For each step, follow this cycle:
 - **Suggest refactoring proactively** - When adding code that would push a file over 300 lines, suggest how to reorganize before implementing
 - **Use index files for directories** - When creating directories with multiple related files, use `index.ts` to re-export for cleaner imports
 
+## Directory Organization Convention
+
+**Preferred Approach: Type-Based Structure**
+
+When a component or feature directory grows to include multiple files, organize by type to clearly separate UI elements from business logic:
+
+```
+FeatureName/
+├── index.ts              # Main component/entry point
+├── styles.css            # Component-specific styles
+├── components/            # UI elements (presentation layer)
+│   ├── ComponentA.ts
+│   ├── ComponentB.ts
+│   └── ...
+├── handlers/             # Business logic handlers
+│   ├── HandlerA.ts
+│   └── HandlerB.ts
+└── utils/                # Helper functions, types, utilities
+    ├── helper.ts
+    └── types.ts
+```
+
+**Guidelines:**
+- **components/** - All UI components that render DOM elements. These are presentation-only and should be reusable.
+- **handlers/** - Business logic that orchestrates behavior, manages state, or coordinates between components. These handle user interactions and data flow.
+- **utils/** - Pure utility functions, type definitions, constants, and helper functions with no side effects.
+
+**Benefits:**
+- Clear separation between UI and logic
+- Easy to locate files by purpose
+- Scales well as features grow
+- Consistent pattern across the codebase
+
+**When to use:**
+- Feature directories with 5+ files
+- When mixing UI components with business logic
+- When it becomes difficult to distinguish component types at a glance
+
+**Example:** The `PropertyRow` directory uses this structure with components (UI), handlers (validation, mapping type changes), and utils (state helpers).
+
 ## Development Context
 
 **Single User Environment**: This plugin is currently used by only one developer. Breaking changes, experimental approaches, and direct migrations are acceptable since:

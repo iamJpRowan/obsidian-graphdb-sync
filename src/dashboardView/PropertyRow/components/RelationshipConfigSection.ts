@@ -1,7 +1,7 @@
-import type GraphDBSyncPlugin from "../../main"
-import type { RelationshipMapping } from "../../types"
-import { ConfigurationService } from "../../services/ConfigurationService"
-import { debounce } from "../../utils/debounce"
+import type GraphDBSyncPlugin from "../../../main"
+import type { RelationshipMapping } from "../../../types"
+import { ConfigurationService } from "../../../services/ConfigurationService"
+import { debounce } from "../../../utils/debounce"
 
 /**
  * Relationship configuration section component

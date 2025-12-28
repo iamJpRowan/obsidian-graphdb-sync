@@ -1,7 +1,7 @@
-import type GraphDBSyncPlugin from "../../main"
-import type { NodePropertyMapping } from "../../types"
-import { ConfigurationService } from "../../services/ConfigurationService"
-import { debounce } from "../../utils/debounce"
+import type GraphDBSyncPlugin from "../../../main"
+import type { NodePropertyMapping } from "../../../types"
+import { ConfigurationService } from "../../../services/ConfigurationService"
+import { debounce } from "../../../utils/debounce"
 
 /**
  * Node property configuration section component

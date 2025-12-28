@@ -1,0 +1,162 @@
+/* PropertyRow Component Styles */
+
+/* Row header - make clickable */
+.graphdb-property-row {
+	cursor: pointer;
+}
+
+/* Configuration container visibility */
+.graphdb-property-row-config {
+	display: none;
+}
+
+.graphdb-property-row-config-visible {
+	display: block;
+}
+
+/* Enabled toggle - remove default Setting styles */
+.graphdb-property-config-toggle-container .setting-item {
+	border: none;
+	padding: 0;
+	margin: 0;
+	box-shadow: none;
+}
+
+.graphdb-property-config-toggle-container .setting-item-control {
+	margin-left: auto;
+}
+
+/* Validation Badge Styles */
+/* .graphdb-validation-badge-container - positioned next to mapping type select via flexbox flow */
+
+.graphdb-validation-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 6px;
+	cursor: pointer;
+	user-select: none;
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.graphdb-validation-badge:hover {
+	color: var(--text-normal);
+}
+
+.graphdb-validation-badge-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+}
+
+.graphdb-validation-badge-text {
+	font-weight: 500;
+}
+
+.graphdb-validation-badge-warning {
+	color: var(--text-warning);
+}
+
+.graphdb-validation-badge-warning:hover {
+	color: var(--text-warning);
+	opacity: 0.8;
+}
+
+.graphdb-validation-badge-success {
+	color: var(--text-success);
+}
+
+.graphdb-validation-badge-success:hover {
+	color: var(--text-success);
+	opacity: 0.8;
+}
+
+.graphdb-validation-badge-icon-spinning {
+	animation: spin 1s linear infinite;
+}
+
+/* Validation Issues Modal Styles */
+.graphdb-validation-issues-modal {
+	padding: 20px;
+}
+
+.graphdb-validation-issues-description {
+	color: var(--text-muted);
+	margin-bottom: 16px;
+}
+
+.graphdb-validation-issues-summary {
+	margin-bottom: 12px;
+	font-size: 0.95em;
+	color: var(--text-normal);
+}
+
+.graphdb-validation-issues-container {
+	max-height: 400px;
+	overflow-y: auto;
+	margin-bottom: 20px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 8px;
+	background-color: var(--background-primary);
+}
+
+.graphdb-validation-issues-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.graphdb-validation-issues-item {
+	padding: 10px;
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	font-size: 0.85em;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.graphdb-validation-issues-file-container {
+	margin-bottom: 4px;
+}
+
+.graphdb-validation-issues-file-container .internal-link {
+	font-weight: 500;
+	color: var(--link-color);
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.graphdb-validation-issues-file-container .internal-link:hover {
+	text-decoration: underline;
+}
+
+.graphdb-validation-issues-details {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: baseline;
+}
+
+.graphdb-validation-issues-value {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+}
+
+.graphdb-validation-issues-message {
+	color: var(--text-error);
+	font-size: 0.9em;
+}
+
+.graphdb-validation-issues-buttons {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+

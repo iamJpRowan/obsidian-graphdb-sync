@@ -1,6 +1,6 @@
 import { Modal } from "obsidian"
-import type { ValidationResult } from "../../types"
-import type GraphDBSyncPlugin from "../../main"
+import type { ValidationResult } from "../../../types"
+import type GraphDBSyncPlugin from "../../../main"
 
 /**
  * Modal for displaying validation issues
