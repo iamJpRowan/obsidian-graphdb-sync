@@ -1,5 +1,6 @@
 import type GraphDBSyncPlugin from "../../main"
 import type { PropertyInfo } from "../../types"
+import { setIcon } from "obsidian"
 import { ConfigurationService } from "../../services/ConfigurationService"
 import { PropertyRowHeader } from "./components/PropertyRowHeader"
 import { RelationshipDiagram } from "./components/RelationshipDiagram"
@@ -57,9 +58,17 @@ export class PropertyRow {
 		// Main row container
 		const rowWrapper = this.container.createDiv("graphdb-property-row-wrapper")
 		
+		// Configuration cog (positioned absolutely at top right)
+		const cogEl = rowWrapper.createSpan("graphdb-property-row-cog")
+		setIcon(cogEl, "gear")
+		cogEl.addEventListener("click", (e) => {
+			e.stopPropagation() // Prevent row click from firing
+			this.toggleConfigPanel()
+		})
+		
 		this.rowEl = rowWrapper.createDiv("graphdb-property-row")
 
-		// Render header (icon, name, occurrences, cog)
+		// Render header (icon, name, occurrences)
 		this.header = new PropertyRowHeader(
 			this.rowEl,
 			this.property,

@@ -199,6 +199,7 @@
 	border-radius: 4px;
 	transition: border-color 0.2s ease;
 	overflow: hidden;
+	position: relative;
 }
 
 .graphdb-property-row-wrapper-enabled {
@@ -211,6 +212,7 @@
 	align-items: center;
 	gap: 12px;
 	padding: 8px 12px;
+	padding-right: 40px; /* Space for absolutely positioned cog */
 	background-color: var(--background-primary);
 	transition: background-color 0.2s ease;
 	cursor: pointer;
@@ -269,6 +271,9 @@
 }
 
 .graphdb-property-row-cog {
+	position: absolute;
+	top: 8px;
+	right: 12px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -278,16 +283,14 @@
 	cursor: pointer;
 	opacity: 0.6;
 	transition: opacity 0.2s ease, transform 0.2s ease;
-	flex-shrink: 0;
-	margin-left: auto;
-	order: 999; /* Ensure it's always last */
+	z-index: 1;
 }
 
 .graphdb-property-row-cog:hover {
 	opacity: 1;
 }
 
-.graphdb-property-row-expanded .graphdb-property-row-cog {
+.graphdb-property-row-wrapper:has(.graphdb-property-row-expanded) .graphdb-property-row-cog {
 	transform: rotate(90deg);
 }
 
@@ -415,6 +418,8 @@
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .graphdb-property-row-diagram-icon {

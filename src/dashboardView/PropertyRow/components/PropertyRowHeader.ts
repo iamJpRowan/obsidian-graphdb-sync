@@ -3,7 +3,7 @@ import type { PropertyInfo } from "../../../types"
 
 /**
  * Property row header component
- * Displays type icon, property name, occurrences, and configuration cog
+ * Displays type icon, property name, and occurrences
  */
 export class PropertyRowHeader {
 	private property: PropertyInfo
@@ -38,14 +38,6 @@ export class PropertyRowHeader {
 			const occurrencesEl = nameContainer.createSpan("graphdb-property-row-occurrences")
 			occurrencesEl.setText(`(${this.property.occurrences})`)
 		}
-
-		// Configuration cog (far right)
-		const cogEl = this.rowEl.createSpan("graphdb-property-row-cog")
-		setIcon(cogEl, "gear")
-		cogEl.addEventListener("click", (e) => {
-			e.stopPropagation() // Prevent row click from firing
-			this.onToggleConfig()
-		})
 
 		// Make entire row clickable to toggle configuration
 		this.rowEl.addEventListener("click", () => {
