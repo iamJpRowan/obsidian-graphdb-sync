@@ -1,21 +1,20 @@
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian"
+import { ItemView, WorkspaceLeaf } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
-import { ConfigurationTabs } from "./ConfigurationTabs"
+import { PropertiesTab } from "./PropertiesTab"
 import { MigrationPanel } from "./MigrationPanel"
-import type { PropertyInfo } from "../types"
 import "./styles.css"
 
 export const DASHBOARD_VIEW_TYPE_V2 = "graphdb-sync-dashboard"
 
 /**
- * New simplified dashboard view
- * Organized around 3 configuration types: Relationships, Node Properties, Labels
+ * Dashboard view
+ * Shows all properties with filtering by frontmatter type and mapping type
  */
 export class DashboardViewV2 extends ItemView {
 	plugin: GraphDBSyncPlugin
 	private contentContainer: HTMLElement | null = null
 	private migrationPanel: MigrationPanel | null = null
-	private configurationTabs: ConfigurationTabs | null = null
+	private propertiesTab: PropertiesTab | null = null
 
 	constructor(leaf: WorkspaceLeaf, plugin: GraphDBSyncPlugin) {
 		super(leaf)
@@ -43,8 +42,8 @@ export class DashboardViewV2 extends ItemView {
 		if (this.migrationPanel) {
 			this.migrationPanel.destroy()
 		}
-		if (this.configurationTabs) {
-			this.configurationTabs.destroy()
+		if (this.propertiesTab) {
+			this.propertiesTab.destroy()
 		}
 	}
 
@@ -60,21 +59,12 @@ export class DashboardViewV2 extends ItemView {
 		const migrationContainer = this.contentContainer.createDiv("graphdb-migration-panel-container")
 		this.migrationPanel = new MigrationPanel(migrationContainer, this.plugin)
 
-		// Configuration Tabs
-		const configContainer = this.contentContainer.createDiv("graphdb-configuration-tabs-container")
-		this.configurationTabs = new ConfigurationTabs(
-			configContainer,
-			this.plugin,
-			{
-				onConfigure: (property) => this.handleConfigure(property),
-			}
+		// Properties Tab (default view)
+		const propertiesContainer = this.contentContainer.createDiv("graphdb-properties-container")
+		this.propertiesTab = new PropertiesTab(
+			propertiesContainer,
+			this.plugin
 		)
 	}
-
-	private async handleConfigure(property: PropertyInfo): Promise<void> {
-		// TODO: Open configuration modal
-		// For now, just show a notice
-		new Notice(`Configure ${property.name} - Modal coming soon`)
-		}
 }
 

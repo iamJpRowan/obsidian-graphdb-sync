@@ -85,49 +85,11 @@
 	color: var(--text-muted);
 }
 
-/* Configuration Tabs */
-.graphdb-configuration-tabs-container {
+/* Properties Container */
+.graphdb-properties-container {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 8px;
 	padding: 16px;
-}
-
-.graphdb-configuration-tabs {
-	display: flex;
-	flex-direction: column;
-}
-
-.graphdb-tab-buttons {
-	display: flex;
-	gap: 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	margin-bottom: 16px;
-	padding-bottom: 8px;
-}
-
-.graphdb-tab-button {
-	padding: 8px 16px;
-	border: none;
-	background: transparent;
-	color: var(--text-muted);
-	cursor: pointer;
-	border-bottom: 2px solid transparent;
-	margin-bottom: -9px;
-	transition: all 0.2s ease;
-}
-
-.graphdb-tab-button:hover {
-	color: var(--text-normal);
-}
-
-.graphdb-tab-button-active {
-	color: var(--text-normal);
-	border-bottom-color: var(--interactive-accent);
-	font-weight: 600;
-}
-
-.graphdb-tab-content {
-	min-height: 400px;
 }
 
 /* Tab common styles */
@@ -554,43 +516,6 @@
 	}
 }
 
-/* Label Rules */
-.graphdb-label-rules-container {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.graphdb-label-rule {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 16px;
-	padding: 12px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	background-color: var(--background-primary);
-}
-
-.graphdb-label-rule-info {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.graphdb-label-rule-pattern {
-	font-weight: 600;
-}
-
-.graphdb-label-rule-label {
-	color: var(--text-muted);
-	font-size: 0.9em;
-}
-
-.graphdb-label-rule-toggle {
-	min-width: 100px;
-}
 
 /* Validation Modal */
 .graphdb-validation-modal {
