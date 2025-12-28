@@ -151,6 +151,13 @@ export class ConfigurationService {
 	}
 
 	/**
+	 * Gets all enabled node property mappings (for MigrationService)
+	 */
+	static getEnabledNodePropertyMappings(settings: PluginSettings): NodePropertyMapping[] {
+		return this.getNodePropertyMappings(settings).filter(m => m.enabled)
+	}
+
+	/**
 	 * LABEL RULES
 	 */
 

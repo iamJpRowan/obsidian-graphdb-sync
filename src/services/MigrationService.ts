@@ -10,6 +10,7 @@ import type {
 	NodeCreationError,
 	RelationshipCreationError,
 	PropertyErrorStats,
+	FrontMatterValue,
 } from "../types"
 import { StateService } from "./StateService"
 import { ConfigurationService } from "./ConfigurationService"
@@ -73,13 +74,108 @@ export class MigrationService {
 	}
 
 	/**
+	 * Converts a front matter value to the appropriate Neo4j type based on nodePropertyType
+	 * Returns null if conversion fails (value will be skipped)
+	 */
+	private static convertValueToNeo4jType(
+		value: FrontMatterValue,
+		nodePropertyType: "boolean" | "integer" | "float" | "date" | "datetime" | "string" | "list_string"
+	): unknown {
+		// Handle null/undefined
+		if (value === null || value === undefined) {
+			return null
+		}
+
+		switch (nodePropertyType) {
+			case "boolean":
+				if (typeof value === "boolean") {
+					return value
+				}
+				if (typeof value === "string") {
+					const lower = value.toLowerCase().trim()
+					if (lower === "true") return true
+					if (lower === "false") return false
+				}
+				// Invalid boolean value - return null to skip
+				return null
+
+			case "integer":
+				if (typeof value === "number") {
+					return Number.isInteger(value) ? value : Math.floor(value)
+				}
+				if (typeof value === "string") {
+					const num = Number(value.trim())
+					if (!isNaN(num)) {
+						return Math.floor(num)
+					}
+				}
+				// Invalid integer value - return null to skip
+				return null
+
+			case "float":
+				if (typeof value === "number") {
+					return value
+				}
+				if (typeof value === "string") {
+					const num = Number(value.trim())
+					if (!isNaN(num)) {
+						return num
+					}
+				}
+				// Invalid float value - return null to skip
+				return null
+
+			case "date":
+			case "datetime":
+				// Neo4j date/datetime types accept ISO 8601 strings
+				if (typeof value === "string") {
+					const date = new Date(value.trim())
+					if (!isNaN(date.getTime())) {
+						// Return ISO 8601 string for Neo4j
+						return date.toISOString()
+					}
+				}
+				if (value instanceof Date) {
+					return value.toISOString()
+				}
+				// Invalid date value - return null to skip
+				return null
+
+			case "string":
+				// Convert any value to string
+				if (typeof value === "string") {
+					return value
+				}
+				if (Array.isArray(value)) {
+					// Join array elements
+					return value.map(String).join(", ")
+				}
+				return String(value)
+
+			case "list_string":
+				// Convert to array of strings
+				if (Array.isArray(value)) {
+					return value.map(String)
+				}
+				// Single value becomes single-element array
+				return [String(value)]
+
+			default:
+				// Fallback to string
+				return String(value)
+		}
+	}
+
+	/**
 	 * Migrates all markdown files to Neo4j
 	 */
 	private static async migrateFiles(
 		session: Session,
 		vaultPath: string,
 		files: string[],
-		onProgress: ProgressCallback
+		onProgress: ProgressCallback,
+		app: App,
+		settings: PluginSettings
 	): Promise<{
 		success: boolean
 		successCount: number
@@ -132,16 +228,60 @@ export class MigrationService {
 						.replace(vaultPath + "\\", "")
 					const fileName = this.getFileName(filePath)
 
-					// MERGE node to prevent duplicates
+					// Get file from Obsidian to extract front matter
+					const file = getFileFromPath(app, relativePath)
+					const frontMatter = file ? extractFrontMatter(app, file) : null
+
+					// Get enabled node property mappings
+					const enabledNodePropertyMappings = ConfigurationService.getEnabledNodePropertyMappings(settings)
+
+					// Build SET clause for node properties
+					const setProperties: Record<string, unknown> = {
+						name: fileName,
+					}
+
+					// Process each enabled node property mapping
+					if (frontMatter && enabledNodePropertyMappings.length > 0) {
+						for (const mapping of enabledNodePropertyMappings) {
+							const propertyValue = frontMatter[mapping.propertyName]
+							if (propertyValue !== undefined && propertyValue !== null) {
+								const convertedValue = this.convertValueToNeo4jType(
+									propertyValue,
+									mapping.nodePropertyType
+								)
+								// Only set property if conversion succeeded (not null)
+								if (convertedValue !== null) {
+									setProperties[mapping.nodePropertyName] = convertedValue
+								}
+							}
+						}
+					}
+
+					// Build dynamic SET clause
+					const setClauses: string[] = []
+					const params: Record<string, unknown> = { path: relativePath }
+					
+					for (const [key, value] of Object.entries(setProperties)) {
+						const paramName = `prop_${key.replace(/[^a-zA-Z0-9]/g, "_")}`
+						// Escape property name if it contains special characters
+						const escapedKey = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `\`${key.replace(/`/g, "``")}\``
+						setClauses.push(`n.${escapedKey} = $${paramName}`)
+						params[paramName] = value
+					}
+
+					// MERGE node to prevent duplicates and SET all properties
+					// Always set at least the name property
+					if (setClauses.length === 0) {
+						setClauses.push("n.name = $name")
+						params.name = fileName
+					}
+
 					await tx.run(
 						`
 						MERGE (n:Note {path: $path})
-						SET n.name = $name
+						SET ${setClauses.join(", ")}
 						`,
-						{
-							path: relativePath,
-							name: fileName,
-						}
+						params
 					)
 
 					successCount++
@@ -592,11 +732,16 @@ export class MigrationService {
 			}
 
 			// Phase 1: Create nodes
+			if (!app || !settings) {
+				throw new Error("App and settings are required for migration")
+			}
 			const nodeResult = await this.migrateFiles(
 				session,
 				vaultPath,
 				files,
-				onProgress
+				onProgress,
+				app,
+				settings
 			)
 			const phasesExecuted: Array<"nodes" | "relationships"> = ["nodes"]
 
@@ -1081,7 +1226,9 @@ export class MigrationService {
 				session,
 				vaultPath,
 				filesWithProperty,
-				onProgress
+				onProgress,
+				app,
+				settings
 			)
 
 			// Create relationships for this property only
@@ -1386,7 +1533,9 @@ export class MigrationService {
 				session,
 				vaultPath,
 				[fullPath],
-				onProgress
+				onProgress,
+				app,
+				settings
 			)
 
 			// Create relationships for all enabled properties
