@@ -1,4 +1,5 @@
 import type GraphDBSyncPlugin from "../main"
+import { PropertiesTab } from "./PropertiesTab"
 import { RelationshipMappingsTab } from "./RelationshipMappingsTab"
 import { NodePropertyMappingsTab } from "./NodePropertyMappingsTab"
 import { LabelRulesTab } from "./LabelRulesTab"
@@ -6,35 +7,30 @@ import type { PropertyInfo } from "../types"
 
 /**
  * Configuration tabs component
- * Manages the 3-tab interface for configuring relationships, node properties, and labels
+ * Manages the 4-tab interface: Properties, Relationships, Node Properties, and Labels
  */
 export class ConfigurationTabs {
 	private plugin: GraphDBSyncPlugin
 	private container: HTMLElement
 	private tabButtons: HTMLElement | null = null
 	private tabContent: HTMLElement | null = null
-	private activeTab: "relationships" | "nodeProperties" | "labels" = "relationships"
+	private activeTab: "properties" | "relationships" | "nodeProperties" | "labels" = "properties"
+	private propertiesTab: PropertiesTab | null = null
 	private relationshipTab: RelationshipMappingsTab | null = null
 	private nodePropertyTab: NodePropertyMappingsTab | null = null
 	private labelTab: LabelRulesTab | null = null
 	private onConfigure: (property: PropertyInfo) => void
-	private onValidate: (property: PropertyInfo) => void
-	private onMigrate: (property: PropertyInfo) => void
 
 	constructor(
 		container: HTMLElement,
 		plugin: GraphDBSyncPlugin,
 		callbacks: {
 			onConfigure: (property: PropertyInfo) => void
-			onValidate: (property: PropertyInfo) => void
-			onMigrate: (property: PropertyInfo) => void
 		}
 	) {
 		this.container = container
 		this.plugin = plugin
 		this.onConfigure = callbacks.onConfigure
-		this.onValidate = callbacks.onValidate
-		this.onMigrate = callbacks.onMigrate
 		this.render()
 	}
 
@@ -45,9 +41,17 @@ export class ConfigurationTabs {
 		// Tab buttons
 		this.tabButtons = this.container.createDiv("graphdb-tab-buttons")
 		
+		const propertiesBtn = this.tabButtons.createEl("button", {
+			text: "All Properties",
+			cls: "graphdb-tab-button graphdb-tab-button-active",
+		})
+		propertiesBtn.addEventListener("click", () => {
+			this.switchTab("properties")
+		})
+
 		const relationshipsBtn = this.tabButtons.createEl("button", {
 			text: "Relationships",
-			cls: "graphdb-tab-button graphdb-tab-button-active",
+			cls: "graphdb-tab-button",
 		})
 		relationshipsBtn.addEventListener("click", () => {
 			this.switchTab("relationships")
@@ -73,10 +77,10 @@ export class ConfigurationTabs {
 		this.tabContent = this.container.createDiv("graphdb-tab-content")
 
 		// Render initial tab
-		this.switchTab("relationships")
+		this.switchTab("properties")
 	}
 
-	private switchTab(tab: "relationships" | "nodeProperties" | "labels"): void {
+	private switchTab(tab: "properties" | "relationships" | "nodeProperties" | "labels"): void {
 		this.activeTab = tab
 
 		// Update button states
@@ -85,9 +89,10 @@ export class ConfigurationTabs {
 			buttons.forEach((btn, index) => {
 				btn.removeClass("graphdb-tab-button-active")
 				if (
-					(tab === "relationships" && index === 0) ||
-					(tab === "nodeProperties" && index === 1) ||
-					(tab === "labels" && index === 2)
+					(tab === "properties" && index === 0) ||
+					(tab === "relationships" && index === 1) ||
+					(tab === "nodeProperties" && index === 2) ||
+					(tab === "labels" && index === 3)
 				) {
 					btn.addClass("graphdb-tab-button-active")
 				}
@@ -100,6 +105,10 @@ export class ConfigurationTabs {
 		}
 
 		// Destroy existing tabs
+		if (this.propertiesTab) {
+			this.propertiesTab.destroy()
+			this.propertiesTab = null
+		}
 		if (this.relationshipTab) {
 			this.relationshipTab.destroy()
 			this.relationshipTab = null
@@ -115,14 +124,20 @@ export class ConfigurationTabs {
 
 		// Render new tab
 		if (this.tabContent) {
-			if (tab === "relationships") {
+			if (tab === "properties") {
+				this.propertiesTab = new PropertiesTab(
+					this.tabContent,
+					this.plugin,
+					{
+						onConfigure: this.onConfigure,
+					}
+				)
+			} else if (tab === "relationships") {
 				this.relationshipTab = new RelationshipMappingsTab(
 					this.tabContent,
 					this.plugin,
 					{
 						onConfigure: this.onConfigure,
-						onValidate: this.onValidate,
-						onMigrate: this.onMigrate,
 					}
 				)
 			} else if (tab === "nodeProperties") {
@@ -131,8 +146,6 @@ export class ConfigurationTabs {
 					this.plugin,
 					{
 						onConfigure: this.onConfigure,
-						onValidate: this.onValidate,
-						onMigrate: this.onMigrate,
 					}
 				)
 			} else if (tab === "labels") {
@@ -145,7 +158,9 @@ export class ConfigurationTabs {
 	 * Refreshes the active tab
 	 */
 	refresh(): void {
-		if (this.activeTab === "relationships" && this.relationshipTab) {
+		if (this.activeTab === "properties" && this.propertiesTab) {
+			this.propertiesTab.refresh()
+		} else if (this.activeTab === "relationships" && this.relationshipTab) {
 			this.relationshipTab.refresh()
 		} else if (this.activeTab === "nodeProperties" && this.nodePropertyTab) {
 			this.nodePropertyTab.refresh()
@@ -157,6 +172,9 @@ export class ConfigurationTabs {
 	 * Cleanup
 	 */
 	destroy(): void {
+		if (this.propertiesTab) {
+			this.propertiesTab.destroy()
+		}
 		if (this.relationshipTab) {
 			this.relationshipTab.destroy()
 		}

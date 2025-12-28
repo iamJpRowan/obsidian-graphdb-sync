@@ -129,16 +129,17 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	neo4jUsername: "neo4j",
 }
 
-// Property type detection
+// Property widget type from Obsidian metadataTypeManager
 export type PropertyType =
-	| "string"
-	| "number"
-	| "boolean"
+	| "aliases"
+	| "checkbox"
 	| "date"
-	| "array"
-	| "object"
-	| "null"
-	| "mixed"
+	| "datetime"
+	| "multitext"
+	| "number"
+	| "tags"
+	| "text"
+	| "unknown"
 
 // Value pattern detection (for relationship mapping hints)
 export type ValuePattern =
@@ -313,11 +314,7 @@ export interface MappingValidationResult {
 export interface PropertyInfo {
 	name: string
 	type: PropertyType
-	pattern: ValuePattern
-	frequency: number
-	sampleValues: string[]
-	isArray: boolean
-	hasWikilinks?: boolean
+	occurrences?: number
 }
 
 /**

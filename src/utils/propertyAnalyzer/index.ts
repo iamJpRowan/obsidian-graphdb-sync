@@ -1,6 +1,3 @@
-// Re-export all property analyzer functions
-export { detectPropertyType } from "./typeDetection"
-export { detectValuePattern } from "./patternDetection"
+// Re-export property analyzer functions
 export { validateWikilink, validateFileProperty } from "./validation"
-export { analyzeProperty, aggregateProperties } from "./aggregation"
 

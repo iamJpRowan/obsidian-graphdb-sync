@@ -19,7 +19,8 @@
 
 .graphdb-migration-panel-header {
 	display: flex;
-	justify-content: flex-end;
+	justify-content: space-between;
+	align-items: center;
 	margin-bottom: 16px;
 }
 
@@ -30,8 +31,6 @@
 
 /* Migration Panel */
 .graphdb-migration-panel-container {
-	border: 2px solid var(--interactive-accent);
-	border-radius: 8px;
 	padding: 16px;
 	background-color: var(--background-secondary);
 }
@@ -62,9 +61,9 @@
 }
 
 .graphdb-migration-panel-status {
-	margin-top: 16px;
-	padding-top: 16px;
-	border-top: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .graphdb-migration-status {
@@ -208,96 +207,93 @@
 }
 
 /* Property Row */
+.graphdb-property-row-wrapper {
+	display: flex;
+	flex-direction: column;
+}
+
 .graphdb-property-row {
 	display: flex;
 	align-items: center;
-	gap: 16px;
-	padding: 12px;
+	gap: 12px;
+	padding: 8px 12px;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 4px;
 	background-color: var(--background-primary);
-	transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+	transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .graphdb-property-row:hover {
 	background-color: var(--background-secondary);
 }
 
-.graphdb-property-row-enabled {
-	border-left: 4px solid var(--interactive-accent);
-	background-color: var(--background-secondary-alt);
+.graphdb-property-row-expanded {
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+	border-bottom: none;
 }
 
-.graphdb-property-row-disabled {
-	opacity: 0.6;
-	border-left: 4px solid var(--text-muted);
+.graphdb-property-row-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	color: var(--text-muted);
 }
 
-.graphdb-property-row-unmapped {
-	border-left: 4px solid transparent;
-}
-
-.graphdb-property-row-info {
+.graphdb-property-row-name-container {
 	flex: 1;
 	display: flex;
-	flex-direction: column;
-	gap: 4px;
+	align-items: center;
+	gap: 8px;
 }
 
 .graphdb-property-row-name {
-	font-weight: 600;
-	font-size: 1em;
-}
-
-.graphdb-property-row-details {
-	font-size: 0.85em;
-	color: var(--text-muted);
-	display: flex;
-	gap: 8px;
-}
-
-.graphdb-property-row-status {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-}
-
-.graphdb-property-row-status-badge {
-	padding: 4px 8px;
-	border-radius: 4px;
-	font-size: 0.85em;
 	font-weight: 500;
-}
-
-.graphdb-property-row-status-mapped {
-	background-color: var(--background-modifier-success);
-	color: var(--text-success);
-}
-
-.graphdb-property-row-status-unmapped {
-	background-color: var(--background-modifier-border);
-	color: var(--text-muted);
-}
-
-.graphdb-property-row-status-wikilink {
-	background-color: var(--background-modifier-border-hover);
+	font-size: 0.95em;
 	color: var(--text-normal);
 }
 
-.graphdb-property-row-status-disabled {
-	opacity: 0.6;
-	background-color: var(--background-modifier-border) !important;
-	color: var(--text-muted) !important;
+.graphdb-property-row-occurrences {
+	font-size: 0.85em;
+	color: var(--text-muted);
 }
 
-.graphdb-property-row-status-enabled {
-	background-color: var(--background-modifier-success);
-	color: var(--text-success);
-}
-
-.graphdb-property-row-actions {
+.graphdb-property-row-cog {
 	display: flex;
-	gap: 8px;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	color: var(--text-muted);
+	cursor: pointer;
+	opacity: 0.6;
+	transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.graphdb-property-row-cog:hover {
+	opacity: 1;
+}
+
+.graphdb-property-row-expanded .graphdb-property-row-cog {
+	transform: rotate(90deg);
+}
+
+.graphdb-property-row-config {
+	padding: 16px;
+	border: 1px solid var(--background-modifier-border);
+	border-top: none;
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	background-color: var(--background-secondary);
+}
+
+.graphdb-property-config-placeholder {
+	padding: 12px;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: 0.9em;
 }
 
 /* Label Rules */
@@ -379,4 +375,5 @@
 	font-size: 0.85em;
 	color: var(--text-muted);
 }
+
 

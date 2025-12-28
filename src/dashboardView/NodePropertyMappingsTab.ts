@@ -1,40 +1,30 @@
-import { Notice } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
-import { PropertyDiscoveryService } from "../services/PropertyDiscoveryService"
 import { ConfigurationService } from "../services/ConfigurationService"
 import { PropertyRow } from "./PropertyRow"
-import type { PropertyInfo } from "../types"
+import type { PropertyInfo, PropertyType } from "../types"
 
 /**
  * Node property mappings tab
- * Shows all properties with ability to configure node property mappings
+ * Shows only properties with node property mappings configured (excluding relationship mappings)
  */
 export class NodePropertyMappingsTab {
 	private plugin: GraphDBSyncPlugin
 	private container: HTMLElement
-	private searchInput: HTMLInputElement | null = null
-	private enabledFilterSelect: HTMLSelectElement | null = null
 	private propertiesContainer: HTMLElement | null = null
 	private propertyRows: PropertyRow[] = []
 	private allProperties: PropertyInfo[] = []
 	private onConfigure: (property: PropertyInfo) => void
-	private onValidate: (property: PropertyInfo) => void
-	private onMigrate: (property: PropertyInfo) => void
 
 	constructor(
 		container: HTMLElement,
 		plugin: GraphDBSyncPlugin,
 		callbacks: {
 			onConfigure: (property: PropertyInfo) => void
-			onValidate: (property: PropertyInfo) => void
-			onMigrate: (property: PropertyInfo) => void
 		}
 	) {
 		this.container = container
 		this.plugin = plugin
 		this.onConfigure = callbacks.onConfigure
-		this.onValidate = callbacks.onValidate
-		this.onMigrate = callbacks.onMigrate
 		this.render()
 	}
 
@@ -48,42 +38,6 @@ export class NodePropertyMappingsTab {
 			text: "Node Property Mappings",
 		})
 
-		// Controls
-		const controls = this.container.createDiv("graphdb-tab-controls")
-		
-		// Search input
-		const searchContainer = controls.createDiv("graphdb-tab-search")
-		this.searchInput = searchContainer.createEl("input", {
-			type: "text",
-			placeholder: "Search properties...",
-			cls: "graphdb-tab-search-input",
-		})
-		this.searchInput.addEventListener("input", () => {
-			this.filterProperties()
-		})
-
-		// Enabled filter
-		const filterContainer = controls.createDiv("graphdb-tab-filter")
-		filterContainer.createSpan({ text: "Status: " })
-		this.enabledFilterSelect = filterContainer.createEl("select", {
-			cls: "graphdb-tab-filter-select",
-		})
-		this.enabledFilterSelect.createEl("option", { text: "All", value: "all" })
-		this.enabledFilterSelect.createEl("option", { text: "Enabled", value: "enabled" })
-		this.enabledFilterSelect.createEl("option", { text: "Disabled", value: "disabled" })
-		this.enabledFilterSelect.addEventListener("change", () => {
-			this.filterProperties()
-		})
-
-		// Refresh button
-		const refreshBtn = controls.createEl("button", {
-			text: "Refresh Properties",
-			cls: "mod-cta",
-		})
-		refreshBtn.addEventListener("click", () => {
-			this.loadProperties(true)
-		})
-
 		// Properties container
 		this.propertiesContainer = this.container.createDiv("graphdb-tab-properties")
 
@@ -91,58 +45,47 @@ export class NodePropertyMappingsTab {
 		this.loadProperties()
 	}
 
-	private async loadProperties(forceRefresh: boolean = false): Promise<void> {
+	private loadProperties(): void {
 		if (!this.propertiesContainer) return
 
-		// Show loading
-		this.propertiesContainer.empty()
-		this.propertiesContainer.createDiv({
-			text: "Loading properties...",
-			cls: "graphdb-tab-loading",
-		})
-
-		try {
-			// Discover properties
-			this.allProperties = await PropertyDiscoveryService.discoverProperties(
-				this.plugin.app,
-				forceRefresh
-			)
-
-			// Filter and display
-			this.filterProperties()
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : String(error)
-			this.propertiesContainer.empty()
+		// Get properties from metadataTypeManager
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const metadataTypeManager = (this.plugin.app as any).metadataTypeManager
+		if (!metadataTypeManager) {
 			this.propertiesContainer.createDiv({
-				text: `Error loading properties: ${errorMessage}`,
+				text: "Metadata type manager not available.",
 				cls: "graphdb-tab-error",
 			})
-			new Notice(`Failed to load properties: ${errorMessage}`)
+			return
 		}
-	}
 
-	private filterProperties(): void {
-		if (!this.propertiesContainer) return
+		const propertyTypes = metadataTypeManager.properties
+		const allPropertyNames = Object.keys(propertyTypes)
 
-		const searchTerm = this.searchInput?.value.toLowerCase() || ""
-		const enabledFilter = this.enabledFilterSelect?.value || "all"
+		// Convert to PropertyInfo
+		this.allProperties = allPropertyNames.map((name) => {
+			const typeData = propertyTypes[name]
+			const widget = typeData?.widget || "text"
+			return {
+				name,
+				type: widget as PropertyType,
+				occurrences: typeData?.occurrences,
+			}
+		})
+
+		// Get node property mappings (excluding relationship mappings)
+		const nodePropertyMappings = ConfigurationService.getNodePropertyMappings(this.plugin.settings)
+		const relationshipMappings = ConfigurationService.getRelationshipMappings(this.plugin.settings)
+		const relationshipPropertyNames = new Set(relationshipMappings.map((m) => m.propertyName))
 		
-		// Apply search filter
-		let filtered = this.allProperties
-		if (searchTerm) {
-			filtered = filtered.filter((prop) =>
-				prop.name.toLowerCase().includes(searchTerm)
-			)
-		}
-		
-		// Apply enabled/disabled filter
-		if (enabledFilter !== "all") {
-			filtered = filtered.filter((prop) => {
-				const mapping = ConfigurationService.getNodePropertyMapping(this.plugin.settings, prop.name)
-				if (!mapping) return enabledFilter === "disabled" // Unmapped = disabled
-				return enabledFilter === "enabled" ? mapping.enabled : !mapping.enabled
-			})
-		}
+		// Filter to only show properties with node property mappings that are NOT relationship mappings
+		const mappedPropertyNames = new Set(
+			nodePropertyMappings
+				.filter((m) => !relationshipPropertyNames.has(m.propertyName))
+				.map((m) => m.propertyName)
+		)
+
+		const filtered = this.allProperties.filter((prop) => mappedPropertyNames.has(prop.name))
 
 		// Clear existing rows
 		this.propertyRows.forEach((row) => row.destroy())
@@ -151,9 +94,7 @@ export class NodePropertyMappingsTab {
 
 		if (filtered.length === 0) {
 			this.propertiesContainer.createDiv({
-				text: searchTerm
-					? "No properties match your search."
-					: "No properties found. Click 'Refresh Properties' to scan your vault.",
+				text: "No node property mappings configured. Configure a property in the All Properties tab.",
 				cls: "graphdb-tab-empty",
 			})
 			return
@@ -167,8 +108,6 @@ export class NodePropertyMappingsTab {
 				property,
 				{
 					onConfigure: this.onConfigure,
-					onValidate: this.onValidate,
-					onMigrate: this.onMigrate,
 				}
 			)
 			this.propertyRows.push(row)
@@ -176,10 +115,10 @@ export class NodePropertyMappingsTab {
 	}
 
 	/**
-	 * Refreshes the tab (reloads properties)
+	 * Refreshes the tab
 	 */
 	refresh(): void {
-		this.loadProperties(true)
+		this.loadProperties()
 	}
 
 	/**
@@ -190,4 +129,3 @@ export class NodePropertyMappingsTab {
 		this.propertyRows = []
 	}
 }
-

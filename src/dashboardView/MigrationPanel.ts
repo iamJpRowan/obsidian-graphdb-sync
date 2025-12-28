@@ -28,8 +28,14 @@ export class MigrationPanel {
 		this.container.empty()
 		this.container.addClass("graphdb-migration-panel")
 
-		// Header with settings cog
+		// Header with settings cog and status
 		const header = this.container.createDiv("graphdb-migration-panel-header")
+		
+		// Status in header
+		this.statusContainer = header.createDiv("graphdb-migration-panel-status")
+		this.renderStatus()
+		
+		// Settings cog
 		const settingsContainer = header.createDiv("graphdb-migration-panel-settings")
 		this.settingsLink = new SettingsLink(settingsContainer, this.plugin)
 		this.settingsLink.render()
@@ -37,10 +43,6 @@ export class MigrationPanel {
 		// Controls
 		this.controlsContainer = this.container.createDiv("graphdb-migration-panel-controls")
 		this.renderControls()
-
-		// Status
-		this.statusContainer = this.container.createDiv("graphdb-migration-panel-status")
-		this.renderStatus()
 	}
 
 	private renderControls(): void {
