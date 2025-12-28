@@ -1,3 +1,4 @@
+import { setIcon } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
 import { PropertyRow } from "./PropertyRow"
 import type { PropertyInfo, ObsidianPropertyType } from "../types"
@@ -17,8 +18,9 @@ export class PropertiesTab {
 	private typeFilterSelect: HTMLSelectElement | null = null
 	private mappingTypeFilterSelect: HTMLSelectElement | null = null
 	private sortSelect: HTMLSelectElement | null = null
-	private sortBy: "alphabetical" | "occurrences" = "alphabetical"
-	private sortDirection: "asc" | "desc" = "asc"
+	private sortDirectionIcon: HTMLElement | null = null
+	private sortBy: "alphabetical" | "frequency" = "frequency"
+	private sortDirection: "asc" | "desc" = "desc"
 
 	constructor(
 		container: HTMLElement,
@@ -90,15 +92,25 @@ export class PropertiesTab {
 		this.sortSelect = sortContainer.createEl("select", {
 			cls: "graphdb-tab-filter-select",
 		})
-		this.sortSelect.createEl("option", { text: "A-Z", value: "alphabetical-asc" })
-		this.sortSelect.createEl("option", { text: "Z-A", value: "alphabetical-desc" })
-		this.sortSelect.createEl("option", { text: "Occurrences (High to Low)", value: "occurrences-desc" })
-		this.sortSelect.createEl("option", { text: "Occurrences (Low to High)", value: "occurrences-asc" })
-		this.sortSelect.value = "alphabetical-asc"
+		this.sortSelect.createEl("option", { text: "Alphabetical", value: "alphabetical" })
+		this.sortSelect.createEl("option", { text: "Frequency", value: "frequency" })
+		this.sortSelect.value = "frequency"
 		this.sortSelect.addEventListener("change", () => {
-			const [sortType, direction] = this.sortSelect!.value.split("-")
-			this.sortBy = sortType as "alphabetical" | "occurrences"
-			this.sortDirection = direction as "asc" | "desc"
+			this.sortBy = this.sortSelect!.value as "alphabetical" | "frequency"
+			this.updateSortDirectionIcon()
+			this.filterAndSortProperties()
+		})
+
+		// Sort direction toggle icon
+		const sortDirectionContainer = sortContainer.createDiv("graphdb-sort-direction-container")
+		this.sortDirectionIcon = sortDirectionContainer.createSpan("graphdb-sort-direction-icon")
+		sortDirectionContainer.setAttr("title", "Toggle sort direction")
+		sortDirectionContainer.setAttr("aria-label", "Toggle sort direction")
+		this.updateSortDirectionIcon()
+		sortDirectionContainer.addEventListener("click", (e) => {
+			e.stopPropagation()
+			this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc"
+			this.updateSortDirectionIcon()
 			this.filterAndSortProperties()
 		})
 
@@ -142,9 +154,10 @@ export class PropertiesTab {
 
 		// Set initial sort state
 		if (this.sortSelect) {
-			this.sortSelect.value = "alphabetical-asc"
-			this.sortBy = "alphabetical"
-			this.sortDirection = "asc"
+			this.sortSelect.value = "frequency"
+			this.sortBy = "frequency"
+			this.sortDirection = "desc"
+			this.updateSortDirectionIcon()
 		}
 
 		// Filter and sort
@@ -205,7 +218,7 @@ export class PropertiesTab {
 				const comparison = a.name.localeCompare(b.name)
 				return this.sortDirection === "asc" ? comparison : -comparison
 			})
-		} else if (this.sortBy === "occurrences") {
+		} else if (this.sortBy === "frequency") {
 			sorted.sort((a, b) => {
 				const aOcc = a.occurrences ?? 0
 				const bOcc = b.occurrences ?? 0
@@ -244,6 +257,19 @@ export class PropertiesTab {
 	 */
 	refresh(): void {
 		this.loadProperties()
+	}
+
+	/**
+	 * Updates the sort direction icon based on current sort type and direction
+	 */
+	private updateSortDirectionIcon(): void {
+		if (!this.sortDirectionIcon) return
+
+		// Use simple arrow icons - these are basic Lucide icons that should work
+		// If these don't work, alternatives to try: "chevron-up"/"chevron-down", "caret-up"/"caret-down"
+		const iconName = this.sortDirection === "asc" ? "arrow-up" : "arrow-down"
+
+		setIcon(this.sortDirectionIcon, iconName)
 	}
 
 	/**
