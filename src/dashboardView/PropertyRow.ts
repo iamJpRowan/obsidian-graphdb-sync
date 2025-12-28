@@ -1,4 +1,4 @@
-import { setIcon, Notice } from "obsidian"
+import { setIcon, Notice, Setting } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
 import type { PropertyInfo, RelationshipMapping } from "../types"
 import { ConfigurationService } from "../services/ConfigurationService"
@@ -28,6 +28,7 @@ export class PropertyRow {
 	private validationBadge: ValidationBadge | null = null
 	private validationBadgeContainer: HTMLElement | null = null
 	private isValidating: boolean = false
+	private enabledToggle: HTMLInputElement | null = null
 
 	constructor(
 		container: HTMLElement,
@@ -42,6 +43,8 @@ export class PropertyRow {
 		this.property = property
 		this.onConfigure = callbacks.onConfigure
 		this.render()
+		// Update initial enabled state
+		this.updateRowEnabledState()
 	}
 
 	private render(): void {
@@ -132,10 +135,34 @@ export class PropertyRow {
 			this.handleMappingTypeChange()
 		})
 		
-		// Validation badge (far right)
+		// Validation badge (just right of mapping type select)
 		this.validationBadgeContainer = mappingTypeRow.createDiv("graphdb-validation-badge-container")
 		this.validationBadge = new ValidationBadge(this.validationBadgeContainer)
 		this.updateValidationBadge()
+		
+		// Enabled toggle (far right)
+		const toggleContainer = mappingTypeRow.createDiv("graphdb-property-config-toggle-container")
+		const setting = new Setting(toggleContainer)
+		setting.settingEl.style.border = "none"
+		setting.settingEl.style.padding = "0"
+		setting.settingEl.style.margin = "0"
+		setting.settingEl.style.boxShadow = "none"
+		setting.controlEl.style.marginLeft = "auto"
+		
+		let currentEnabled = false
+		if (currentMapping) {
+			currentEnabled = currentMapping.enabled
+		} else if (nodePropertyMapping) {
+			currentEnabled = nodePropertyMapping.enabled
+		}
+		
+		setting.addToggle((toggle) => {
+			this.enabledToggle = toggle.toggleEl as HTMLInputElement
+			toggle.setValue(currentEnabled)
+			toggle.onChange(async (value) => {
+				await this.handleEnabledToggleChange(value)
+			})
+		})
 
 		// Relationship-specific configuration
 		if (currentMappingType === "relationship") {
@@ -150,6 +177,9 @@ export class PropertyRow {
 
 		// Update validation badge after rendering
 		this.updateValidationBadge()
+		
+		// Update row enabled state
+		this.updateRowEnabledState()
 	}
 
 	private renderRelationshipConfig(mapping: RelationshipMapping | null): void {
@@ -311,6 +341,58 @@ export class PropertyRow {
 				this.property.name
 			)
 			this.renderRelationshipDiagram(currentMapping)
+		}
+		
+		// Update row enabled state
+		this.updateRowEnabledState()
+	}
+
+	private async handleEnabledToggleChange(enabled: boolean): Promise<void> {
+		const currentMapping = ConfigurationService.getRelationshipMapping(
+			this.plugin.settings,
+			this.property.name
+		)
+		const nodePropertyMapping = ConfigurationService.getNodePropertyMapping(
+			this.plugin.settings,
+			this.property.name
+		)
+
+		if (currentMapping) {
+			await ConfigurationService.saveRelationshipMapping(this.plugin, this.property.name, {
+				...currentMapping,
+				enabled,
+			})
+		} else if (nodePropertyMapping) {
+			await ConfigurationService.saveNodePropertyMapping(this.plugin, this.property.name, {
+				...nodePropertyMapping,
+				enabled,
+			})
+		}
+
+		// Update row enabled state
+		this.updateRowEnabledState()
+	}
+
+	private updateRowEnabledState(): void {
+		const currentMapping = ConfigurationService.getRelationshipMapping(
+			this.plugin.settings,
+			this.property.name
+		)
+		const nodePropertyMapping = ConfigurationService.getNodePropertyMapping(
+			this.plugin.settings,
+			this.property.name
+		)
+
+		const isEnabled = currentMapping?.enabled || nodePropertyMapping?.enabled || false
+
+		// Apply to wrapper - single source of truth for border styling
+		const wrapper = this.rowEl.parentElement
+		if (wrapper && wrapper.classList.contains("graphdb-property-row-wrapper")) {
+			if (isEnabled) {
+				wrapper.addClass("graphdb-property-row-wrapper-enabled")
+			} else {
+				wrapper.removeClass("graphdb-property-row-wrapper-enabled")
+			}
 		}
 	}
 
