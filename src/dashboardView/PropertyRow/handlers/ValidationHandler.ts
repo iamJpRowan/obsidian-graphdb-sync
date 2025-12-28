@@ -120,10 +120,6 @@ export class ValidationHandler {
 					}
 				)
 			}
-		} else {
-			this.validationBadge.renderNotValidated(() => {
-				this.validate()
-			})
 		}
 	}
 }

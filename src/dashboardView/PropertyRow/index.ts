@@ -72,6 +72,9 @@ export class PropertyRow {
 		// Configuration container (hidden by default)
 		this.configContainer = rowWrapper.createDiv("graphdb-property-row-config")
 		this.renderConfiguration()
+		
+		// Render initial mapping display if one exists
+		this.renderInitialMappingDisplay()
 	}
 
 	private renderConfiguration(): void {
@@ -143,6 +146,16 @@ export class PropertyRow {
 		this.renderNodePropertyName(state.nodeProperty)
 	}
 
+	private renderInitialMappingDisplay(): void {
+		const state = getPropertyRowState(this.plugin, this.property.name)
+		
+		if (state.relationship) {
+			this.renderRelationshipDiagram(state.relationship)
+		} else if (state.nodeProperty) {
+			this.renderNodePropertyName(state.nodeProperty)
+		}
+	}
+
 	private cleanupDisplays(): void {
 		if (this.relationshipDiagram) {
 			this.relationshipDiagram.remove()
@@ -160,6 +173,20 @@ export class PropertyRow {
 		
 		// Handle the mapping type change
 		this.mappingTypeHandler.handleChange(mappingType)
+		
+		// Show/hide validation badge container based on mapping type
+		if (this.configurationPanel) {
+			const validationBadgeContainer = this.configurationPanel.getValidationBadgeContainer()
+			if (validationBadgeContainer) {
+				if (mappingType === "none") {
+					validationBadgeContainer.addClass("graphdb-validation-badge-container-hidden")
+				} else {
+					validationBadgeContainer.removeClass("graphdb-validation-badge-container-hidden")
+					// Auto-validate when a mapping type is selected
+					this.validationHandler.validate()
+				}
+			}
+		}
 	}
 
 	private async handleEnabledToggleChange(enabled: boolean): Promise<void> {
@@ -203,6 +230,11 @@ export class PropertyRow {
 		if (this.configPanelVisible) {
 			this.configContainer.addClass("graphdb-property-row-config-visible")
 			this.rowEl.addClass("graphdb-property-row-expanded")
+			// Auto-validate when expanding (if mapping is configured)
+			const state = getPropertyRowState(this.plugin, this.property.name)
+			if (state.mappingType !== "none") {
+				this.validationHandler.validate()
+			}
 		} else {
 			this.configContainer.removeClass("graphdb-property-row-config-visible")
 			this.rowEl.removeClass("graphdb-property-row-expanded")

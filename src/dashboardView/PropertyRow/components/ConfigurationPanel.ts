@@ -62,7 +62,11 @@ export class ConfigurationPanel {
 		)
 		
 		// Validation badge container (just right of mapping type select)
+		// Hide when mapping type is "none"
 		const validationBadgeContainer = mappingTypeRow.createDiv("graphdb-validation-badge-container")
+		if (state.mappingType === "none") {
+			validationBadgeContainer.addClass("graphdb-validation-badge-container-hidden")
+		}
 		
 		// Enabled toggle (far right)
 		this.enabledToggle = new EnabledToggle(
@@ -144,6 +148,15 @@ export class ConfigurationPanel {
 	 */
 	getRelationshipConfigSection(): RelationshipConfigSection | null {
 		return this.relationshipConfigSection
+	}
+
+	/**
+	 * Gets the validation badge container
+	 */
+	getValidationBadgeContainer(): HTMLElement | null {
+		// Find the validation badge container in the DOM
+		const container = this.container.querySelector(".graphdb-validation-badge-container")
+		return container instanceof HTMLElement ? container : null
 	}
 }
 

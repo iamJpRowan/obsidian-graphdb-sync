@@ -15,26 +15,6 @@ export class ValidationBadge {
 	}
 
 	/**
-	 * Renders the badge in "not validated" state
-	 */
-	renderNotValidated(onClick: () => void): void {
-		this.clear()
-		this.badgeEl = this.container.createSpan("graphdb-validation-badge")
-		this.badgeEl.setAttr("aria-label", "Run validation")
-		this.badgeEl.setAttr("role", "button")
-		this.badgeEl.setAttr("tabindex", "0")
-		this.textEl = this.badgeEl.createSpan("graphdb-validation-badge-text")
-		this.textEl.setText("Not Validated")
-		this.badgeEl.addEventListener("click", onClick)
-		this.badgeEl.addEventListener("keydown", (e) => {
-			if (e.key === "Enter" || e.key === " ") {
-				e.preventDefault()
-				onClick()
-			}
-		})
-	}
-
-	/**
 	 * Renders the badge in "validating" state
 	 */
 	renderValidating(): void {

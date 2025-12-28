@@ -29,6 +29,10 @@
 /* Validation Badge Styles */
 /* .graphdb-validation-badge-container - positioned next to mapping type select via flexbox flow */
 
+.graphdb-validation-badge-container-hidden {
+	display: none;
+}
+
 .graphdb-validation-badge {
 	display: inline-flex;
 	align-items: center;
