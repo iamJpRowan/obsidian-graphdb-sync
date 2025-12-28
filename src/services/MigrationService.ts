@@ -525,6 +525,10 @@ export class MigrationService {
 					relationshipErrors: [],
 					propertyWriteErrors: [],
 					propertyStats: {},
+					relationshipStats: {
+						successCount: 0,
+						errorCount: 0,
+					},
 				}
 			}
 
@@ -580,9 +584,9 @@ export class MigrationService {
 				for (const mapping of enabledMappings) {
 					propertyStats[mapping.propertyName] = {
 						propertyName: mapping.propertyName,
-						successCount: 0,
-						errorCount: 0,
-						fileErrors: [],
+							successCount: 0,
+							errorCount: 0,
+							fileErrors: [],
 					}
 				}
 			}
@@ -802,9 +806,9 @@ export class MigrationService {
 			for (const mapping of enabledMappings) {
 				propertyStats[mapping.propertyName] = {
 					propertyName: mapping.propertyName,
-					successCount: 0,
-					errorCount: 0,
-					fileErrors: [],
+							successCount: 0,
+							errorCount: 0,
+							fileErrors: [],
 				}
 			}
 
@@ -1035,6 +1039,10 @@ export class MigrationService {
 					relationshipErrors: [],
 					propertyWriteErrors: [],
 					propertyStats: {},
+					relationshipStats: {
+						successCount: 0,
+						errorCount: 0,
+					},
 				}
 			}
 
@@ -1086,10 +1094,10 @@ export class MigrationService {
 					relationshipType: mapping.relationshipType,
 					direction: mapping.direction,
 				}
-				const tx = session.beginTransaction()
-				this.currentMigration!.transaction = tx
+					const tx = session.beginTransaction()
+					this.currentMigration!.transaction = tx
 
-				try {
+					try {
 						for (const filePath of filesWithProperty) {
 							if (this.currentMigration?.cancelled) {
 								await tx.rollback()
@@ -1227,12 +1235,12 @@ export class MigrationService {
 							}
 						}
 
-					await tx.commit()
-					this.currentMigration!.transaction = null
-				} catch (error) {
-					await tx.rollback()
-					this.currentMigration!.transaction = null
-					throw error
+						await tx.commit()
+						this.currentMigration!.transaction = null
+					} catch (error) {
+						await tx.rollback()
+						this.currentMigration!.transaction = null
+						throw error
 				}
 			}
 
@@ -1367,9 +1375,9 @@ export class MigrationService {
 			for (const mapping of enabledMappings) {
 				propertyStats[mapping.propertyName] = {
 					propertyName: mapping.propertyName,
-					successCount: 0,
-					errorCount: 0,
-					fileErrors: [],
+							successCount: 0,
+							errorCount: 0,
+							fileErrors: [],
 				}
 			}
 

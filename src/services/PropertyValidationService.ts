@@ -1,4 +1,4 @@
-import type { App } from "obsidian"
+import type { App, TFile } from "obsidian"
 import { validateFileProperty } from "../utils/propertyAnalyzer/validation"
 import { extractFrontMatter } from "../utils/frontMatterExtractor"
 import type { ValidationResult, ValidationIssueType, ValidationIssueSeverity, FrontMatterValue } from "../types"
@@ -18,14 +18,14 @@ export class PropertyValidationService {
 	): Promise<ValidationResult> {
 		const markdownFiles = app.vault.getMarkdownFiles()
 		const values: FrontMatterValue[] = []
-		const filesWithProperty: string[] = []
+		const filesWithProperty: TFile[] = []
 
 		// Collect all values for this property
 		for (const file of markdownFiles) {
 			const frontMatter = extractFrontMatter(app, file)
 			if (frontMatter && propertyName in frontMatter) {
 				values.push(frontMatter[propertyName])
-				filesWithProperty.push(file.path)
+				filesWithProperty.push(file)
 			}
 		}
 
@@ -79,7 +79,8 @@ export class PropertyValidationService {
 			if (validation.validationDetails) {
 				for (let i = 0; i < Math.min(validation.validationDetails.length, filesWithProperty.length); i++) {
 					const detail = validation.validationDetails[i]
-					if (!detail.validation.isValid || detail.validation.fileExists === false) {
+					const file = filesWithProperty[i]
+					if (file && (!detail.validation.isValid || detail.validation.fileExists === false)) {
 						const issue = issues.find(iss => 
 							(detail.validation.isValid === false && iss.type === "invalid_wikilink") ||
 							(detail.validation.fileExists === false && iss.type === "non_existent_file")
@@ -87,7 +88,7 @@ export class PropertyValidationService {
 						
 						if (issue) {
 							filesWithIssues.push({
-								filePath: filesWithProperty[i] || "",
+								file,
 								value: detail.value,
 								issue,
 							})

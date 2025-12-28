@@ -1,6 +1,6 @@
 import type GraphDBSyncPlugin from "../main"
 import { PropertyRow } from "./PropertyRow"
-import type { PropertyInfo, PropertyType } from "../types"
+import type { PropertyInfo, ObsidianPropertyType } from "../types"
 
 /**
  * Properties tab
@@ -115,7 +115,7 @@ export class PropertiesTab {
 			const widget = typeData?.widget || "text"
 			return {
 				name,
-				type: widget as PropertyType,
+				type: widget as ObsidianPropertyType,
 				occurrences: typeData?.occurrences,
 			}
 		})
@@ -143,7 +143,7 @@ export class PropertiesTab {
 
 		// Clear existing options (except "All")
 		const allOption = this.typeFilterSelect.querySelector('option[value="all"]')
-		this.typeFilterSelect.innerHTML = ""
+		this.typeFilterSelect.empty()
 		if (allOption) {
 			this.typeFilterSelect.appendChild(allOption)
 		}

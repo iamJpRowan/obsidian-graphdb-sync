@@ -214,6 +214,7 @@
 
 .graphdb-property-row {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: 12px;
 	padding: 8px 12px;
@@ -221,6 +222,16 @@
 	border-radius: 4px;
 	background-color: var(--background-primary);
 	transition: background-color 0.2s ease, border-color 0.2s ease;
+	cursor: pointer;
+}
+
+.graphdb-property-row-first-group {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 1;
+	min-width: 200px;
+	flex-shrink: 0;
 }
 
 .graphdb-property-row:hover {
@@ -247,6 +258,16 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	min-width: 0; /* Allow text truncation */
+}
+
+.graphdb-property-row-additional-items {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 150px;
 }
 
 .graphdb-property-row-name {
@@ -270,6 +291,9 @@
 	cursor: pointer;
 	opacity: 0.6;
 	transition: opacity 0.2s ease, transform 0.2s ease;
+	flex-shrink: 0;
+	margin-left: auto;
+	order: 999; /* Ensure it's always last */
 }
 
 .graphdb-property-row-cog:hover {
@@ -286,7 +310,6 @@
 	border-top: none;
 	border-bottom-left-radius: 4px;
 	border-bottom-right-radius: 4px;
-	background-color: var(--background-secondary);
 }
 
 .graphdb-property-config-placeholder {
@@ -294,6 +317,353 @@
 	text-align: center;
 	color: var(--text-muted);
 	font-size: 0.9em;
+}
+
+/* Configuration Panel */
+.graphdb-property-config-section {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.graphdb-property-config-mapping-type-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.graphdb-property-config-mapping-type-row .graphdb-property-validation-icon {
+	margin-left: auto;
+}
+
+.graphdb-property-config-section:last-child {
+	margin-bottom: 0;
+}
+
+.graphdb-property-config-label {
+	font-size: 0.9em;
+	color: var(--text-normal);
+	font-weight: 500;
+}
+
+.graphdb-property-config-type-direction-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.graphdb-property-config-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 1;
+	min-width: 250px;
+}
+
+.graphdb-property-config-direction-container {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.graphdb-property-config-direction-button {
+	padding: 6px 10px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9em;
+	cursor: pointer;
+	user-select: none;
+	transition: background-color 0.2s ease, border-color 0.2s ease;
+	width: fit-content;
+	white-space: nowrap;
+}
+
+.graphdb-property-config-direction-button:hover {
+	background-color: var(--background-secondary);
+}
+
+.graphdb-property-config-input {
+	padding: 6px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9em;
+	flex: 1;
+	min-width: 200px;
+}
+
+.graphdb-property-config-select {
+	padding: 6px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9em;
+}
+
+.graphdb-property-config-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.graphdb-property-config-select:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.graphdb-property-row-diagram {
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	color: var(--text-normal);
+}
+
+.graphdb-property-config-actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.graphdb-property-validation-results {
+	margin-top: 12px;
+}
+
+.graphdb-property-validation-loading {
+	padding: 12px;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.graphdb-property-validation-success {
+	padding: 12px;
+	background-color: var(--background-modifier-success);
+	color: var(--text-success);
+	border-radius: 4px;
+	font-size: 0.9em;
+}
+
+.graphdb-property-validation-error {
+	padding: 12px;
+	background-color: var(--background-modifier-error);
+	color: var(--text-error);
+	border-radius: 4px;
+	font-size: 0.9em;
+}
+
+.graphdb-property-validation-summary {
+	margin-bottom: 12px;
+	font-size: 0.9em;
+	color: var(--text-normal);
+}
+
+.graphdb-property-validation-issues {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.graphdb-property-validation-issue {
+	padding: 10px;
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	font-size: 0.85em;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.graphdb-property-validation-file-container {
+	margin-bottom: 4px;
+}
+
+
+.graphdb-property-validation-file-container .internal-link:hover {
+	text-decoration: underline;
+}
+
+.graphdb-property-validation-details {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: baseline;
+}
+
+.graphdb-property-validation-value {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+}
+
+.graphdb-property-validation-message {
+	color: var(--text-error);
+	font-size: 0.9em;
+}
+
+.graphdb-validation-badge-container {
+	margin-left: auto;
+}
+
+.graphdb-validation-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 6px;
+	cursor: pointer;
+	user-select: none;
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.graphdb-validation-badge:hover {
+	color: var(--text-normal);
+}
+
+.graphdb-validation-badge-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+}
+
+.graphdb-validation-badge-text {
+	font-weight: 500;
+}
+
+.graphdb-validation-badge-warning {
+	color: var(--text-warning);
+}
+
+.graphdb-validation-badge-warning:hover {
+	color: var(--text-warning);
+	opacity: 0.8;
+}
+
+.graphdb-validation-badge-success {
+	color: var(--text-success);
+}
+
+.graphdb-validation-badge-success:hover {
+	color: var(--text-success);
+	opacity: 0.8;
+}
+
+.graphdb-validation-badge-icon-spinning {
+	animation: spin 1s linear infinite;
+}
+
+/* Validation Issues Modal */
+.graphdb-validation-issues-modal {
+	padding: 20px;
+}
+
+.graphdb-validation-issues-description {
+	color: var(--text-muted);
+	margin-bottom: 16px;
+}
+
+.graphdb-validation-issues-summary {
+	margin-bottom: 12px;
+	font-size: 0.95em;
+	color: var(--text-normal);
+}
+
+.graphdb-validation-issues-container {
+	max-height: 400px;
+	overflow-y: auto;
+	margin-bottom: 20px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 8px;
+	background-color: var(--background-primary);
+}
+
+.graphdb-validation-issues-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.graphdb-validation-issues-item {
+	padding: 10px;
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	font-size: 0.85em;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.graphdb-validation-issues-file-container {
+	margin-bottom: 4px;
+}
+
+.graphdb-validation-issues-file-container .internal-link {
+	font-weight: 500;
+	color: var(--link-color);
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.graphdb-validation-issues-file-container .internal-link:hover {
+	text-decoration: underline;
+}
+
+.graphdb-validation-issues-details {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: baseline;
+}
+
+.graphdb-validation-issues-value {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+}
+
+.graphdb-validation-issues-message {
+	color: var(--text-error);
+	font-size: 0.9em;
+}
+
+.graphdb-validation-issues-buttons {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+.graphdb-property-validation-icon:hover {
+	opacity: 1;
+}
+
+.graphdb-property-validation-icon-success {
+	color: var(--text-success);
+}
+
+.graphdb-property-validation-icon-warning {
+	color: var(--text-warning);
+}
+
+.graphdb-property-validation-icon-spinning {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 /* Label Rules */

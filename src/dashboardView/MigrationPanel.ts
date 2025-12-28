@@ -136,9 +136,19 @@ export class MigrationPanel {
 				this.plugin.settings
 			)
 
-			// Save result
+			// Save result (convert MigrationResult to PluginSettings format)
 			this.plugin.settings.lastMigrationResult = {
-				...result,
+				success: result.success,
+				totalFiles: result.totalFiles,
+				successCount: result.successCount,
+				errorCount: result.errorCount,
+				errors: [
+					...result.nodeErrors.map(e => ({ file: e.file, error: e.error })),
+					...result.relationshipErrors.map(e => ({ file: e.file, property: e.property, target: e.target, error: e.error })),
+				],
+				duration: result.duration,
+				message: result.message,
+				relationshipStats: result.relationshipStats,
 				timestamp: Date.now(),
 			}
 			await this.plugin.saveSettings()

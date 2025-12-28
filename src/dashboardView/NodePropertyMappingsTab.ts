@@ -1,7 +1,7 @@
 import type GraphDBSyncPlugin from "../main"
 import { ConfigurationService } from "../services/ConfigurationService"
 import { PropertyRow } from "./PropertyRow"
-import type { PropertyInfo, PropertyType } from "../types"
+import type { PropertyInfo, ObsidianPropertyType } from "../types"
 
 /**
  * Node property mappings tab
@@ -68,7 +68,7 @@ export class NodePropertyMappingsTab {
 			const widget = typeData?.widget || "text"
 			return {
 				name,
-				type: widget as PropertyType,
+				type: widget as ObsidianPropertyType,
 				occurrences: typeData?.occurrences,
 			}
 		})
