@@ -4,6 +4,37 @@
 	padding: 20px;
 }
 
+/* Dashboard Header */
+.graphdb-dashboard-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.graphdb-dashboard-header-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.graphdb-dashboard-header-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-normal);
+}
+
+.graphdb-dashboard-header-title {
+	font-size: 1.2em;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.graphdb-dashboard-header-right {
+	display: flex;
+	align-items: center;
+}
+
 .graphdb-dashboard-v2-content {
 	display: flex;
 	flex-direction: column;
@@ -17,12 +48,10 @@
 	margin-bottom: 8px;
 }
 
-/* Status bar line: progress bar | settings */
+/* Status bar line: full-width progress bar */
 .graphdb-migration-status-bar-line {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
 	margin-bottom: 8px;
 }
 
@@ -34,10 +63,6 @@
 	gap: 12px;
 }
 
-.graphdb-migration-panel-settings {
-	display: flex;
-	justify-content: flex-end;
-}
 
 /* Migration Panel */
 .graphdb-migration-panel-container {

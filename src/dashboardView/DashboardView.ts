@@ -1,7 +1,8 @@
-import { ItemView, WorkspaceLeaf } from "obsidian"
+import { ItemView, WorkspaceLeaf, setIcon } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
 import { PropertiesTab } from "./PropertiesTab"
 import { MigrationPanel } from "./MigrationPanel"
+import { SettingsLink } from "./components/SettingsLink"
 import "./styles.css"
 
 export const DASHBOARD_VIEW_TYPE_V2 = "graphdb-sync-dashboard"
@@ -15,6 +16,7 @@ export class DashboardViewV2 extends ItemView {
 	private contentContainer: HTMLElement | null = null
 	private migrationPanel: MigrationPanel | null = null
 	private propertiesTab: PropertiesTab | null = null
+	private settingsLink: SettingsLink | null = null
 
 	constructor(leaf: WorkspaceLeaf, plugin: GraphDBSyncPlugin) {
 		super(leaf)
@@ -45,6 +47,9 @@ export class DashboardViewV2 extends ItemView {
 		if (this.propertiesTab) {
 			this.propertiesTab.destroy()
 		}
+		if (this.settingsLink) {
+			this.settingsLink.destroy()
+		}
 	}
 
 	private render(): void {
@@ -52,10 +57,21 @@ export class DashboardViewV2 extends ItemView {
 		contentEl.empty()
 		contentEl.addClass("graphdb-dashboard-v2")
 
+		// Header row: database icon + title | settings cog
+		const headerRow = contentEl.createDiv("graphdb-dashboard-header")
+		const headerLeft = headerRow.createDiv("graphdb-dashboard-header-left")
+		const iconEl = headerLeft.createSpan("graphdb-dashboard-header-icon")
+		setIcon(iconEl, "database")
+		const titleEl = headerLeft.createSpan("graphdb-dashboard-header-title")
+		titleEl.setText("Graph DB Sync")
+		const headerRight = headerRow.createDiv("graphdb-dashboard-header-right")
+		this.settingsLink = new SettingsLink(headerRight, this.plugin)
+		this.settingsLink.render()
+
 		// Main content container
 		this.contentContainer = contentEl.createDiv("graphdb-dashboard-v2-content")
 
-		// Migration Panel (settings cog is inside it)
+		// Migration Panel
 		const migrationContainer = this.contentContainer.createDiv("graphdb-migration-panel-container")
 		this.migrationPanel = new MigrationPanel(migrationContainer, this.plugin)
 

@@ -6,7 +6,6 @@ import { StateService } from "../services/StateService"
 import { getVaultPath } from "../utils/obsidianApi"
 import { DEFAULT_SETTINGS } from "../types"
 import { PasswordPrompt } from "./components/PasswordPrompt"
-import { SettingsLink } from "./components/SettingsLink"
 import type { PluginState } from "../services/StateService"
 
 /**
@@ -18,7 +17,6 @@ export class MigrationPanel {
 	private container: HTMLElement
 	private statusContainer: HTMLElement | null = null
 	private statusTextContainer: HTMLElement | null = null
-	private settingsLink: SettingsLink | null = null
 	private unsubscribeState: (() => void) | null = null
 
 	constructor(container: HTMLElement, plugin: GraphDBSyncPlugin) {
@@ -32,15 +30,10 @@ export class MigrationPanel {
 		this.container.empty()
 		this.container.addClass("graphdb-migration-panel")
 
-		// Status bar line: progress bar | settings
+		// Status bar line: full-width progress bar
 		const statusBarLine = this.container.createDiv("graphdb-migration-status-bar-line")
 		this.statusContainer = statusBarLine.createDiv("graphdb-migration-status-container")
 		this.renderStatus()
-		
-		// Settings cog (right)
-		const settingsContainer = statusBarLine.createDiv("graphdb-migration-panel-settings")
-		this.settingsLink = new SettingsLink(settingsContainer, this.plugin)
-		this.settingsLink.render()
 
 		// Action line: status text | icon button with text
 		const actionLine = this.container.createDiv("graphdb-migration-action-line")
@@ -226,6 +219,9 @@ export class MigrationPanel {
 
 			// Update display
 			this.renderStatus()
+			if (this.statusTextContainer) {
+				this.renderStatusText(this.statusTextContainer)
+			}
 
 			if (result.success) {
 				new Notice(`Migration completed: ${result.successCount}/${result.totalFiles} files`)
@@ -245,9 +241,6 @@ export class MigrationPanel {
 		if (this.unsubscribeState) {
 			this.unsubscribeState()
 			this.unsubscribeState = null
-		}
-		if (this.settingsLink) {
-			this.settingsLink.destroy()
 		}
 	}
 }
