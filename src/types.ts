@@ -18,14 +18,6 @@ export interface PropertyMapping {
 	enabled: boolean
 }
 
-// Relationship error for detailed error reporting
-export interface RelationshipError {
-	file: string
-	property: string
-	target: string
-	error: string
-}
-
 // Relationship type validation result
 export interface RelationshipTypeValidation {
 	isValid: boolean
@@ -44,7 +36,7 @@ export interface PluginSettings {
 		totalFiles: number
 		successCount: number
 		errorCount: number
-		errors: Array<{ file: string; error: string } | RelationshipError>
+		errors: Array<{ file: string; error: string } | { file: string; property: string; target: string; error: string }>
 		duration: number
 		message?: string
 		relationshipStats?: {
@@ -249,10 +241,7 @@ export interface PropertyErrorStats {
 	propertyName: string
 	successCount: number
 	errorCount: number
-	fileErrors: Array<{
-		file: string
-		error: string
-	}>
+	fileErrors: RelationshipCreationError[]
 }
 
 // Migration result
@@ -266,7 +255,6 @@ export interface MigrationResult {
 	phasesExecuted: Array<"nodes" | "relationships">
 	nodeErrors: NodeCreationError[]
 	relationshipErrors: RelationshipCreationError[]
-	propertyWriteErrors: unknown[] // Placeholder for future property write errors
 	propertyStats: Record<string, PropertyErrorStats>
 	relationshipStats: {
 		successCount: number

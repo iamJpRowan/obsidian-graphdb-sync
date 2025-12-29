@@ -123,14 +123,14 @@ export class MigrationPanel {
 		const vaultPath = getVaultPath(this.plugin.app)
 
 		try {
-			// TODO: Implement replace vs update strategy
+			// Note: Replace vs update strategy will be implemented in Phase 4
 			// For now, just use update (MERGE)
 			const result = await MigrationService.migrate(
 				vaultPath,
 				uri,
 				{ username, password },
-				() => {
-					// Progress updates
+				(progress) => {
+					// Progress updates will be handled via StateService subscription in Phase 1
 				},
 				this.plugin.app,
 				this.plugin.settings

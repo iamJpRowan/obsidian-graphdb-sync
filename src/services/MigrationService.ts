@@ -74,6 +74,47 @@ export class MigrationService {
 	}
 
 	/**
+	 * Normalizes a file path by removing the vault path prefix
+	 */
+	private static normalizePath(filePath: string, vaultPath: string): string {
+		return filePath
+			.replace(vaultPath + "/", "")
+			.replace(vaultPath + "\\", "")
+	}
+
+	/**
+	 * Cleans up driver and session resources
+	 */
+	private static async cleanupDriverAndSession(
+		driver: Driver | null,
+		session: Session | null
+	): Promise<void> {
+		if (session) {
+			try {
+				await session.close()
+			} catch (e) {
+				// Ignore cleanup errors
+			}
+		}
+		if (driver) {
+			try {
+				await driver.close()
+			} catch (e) {
+				// Ignore cleanup errors
+			}
+		}
+	}
+
+	/**
+	 * Clears the current transaction reference
+	 */
+	private static clearTransaction(): void {
+		if (this.currentMigration) {
+			this.currentMigration.transaction = null
+		}
+	}
+
+	/**
 	 * Converts a front matter value to the appropriate Neo4j type based on nodePropertyType
 	 * Returns null if conversion fails (value will be skipped)
 	 */
@@ -223,9 +264,7 @@ export class MigrationService {
 
 				try {
 					// Get relative path from vault root
-					const relativePath = filePath
-						.replace(vaultPath + "/", "")
-						.replace(vaultPath + "\\", "")
+					const relativePath = this.normalizePath(filePath, vaultPath)
 					const fileName = this.getFileName(filePath)
 
 					// Get file from Obsidian to extract front matter
@@ -298,9 +337,7 @@ export class MigrationService {
 					const errorMessage =
 						error instanceof Error ? error.message : String(error)
 					// Get relative path for error reporting
-					const errorRelativePath = filePath
-						.replace(vaultPath + "/", "")
-						.replace(vaultPath + "\\", "")
+					const errorRelativePath = this.normalizePath(filePath, vaultPath)
 					const errorType = categorizeError(error)
 					nodeErrors.push({
 						file: errorRelativePath,
@@ -319,7 +356,7 @@ export class MigrationService {
 			}
 
 			await tx.commit()
-			this.currentMigration!.transaction = null
+			this.clearTransaction()
 
 			return {
 				success: true,
@@ -331,7 +368,7 @@ export class MigrationService {
 			}
 		} catch (error) {
 			await tx.rollback()
-			this.currentMigration!.transaction = null
+			this.clearTransaction()
 			throw error
 		}
 	}
@@ -579,12 +616,12 @@ export class MigrationService {
 			}
 
 			await tx.commit()
-			this.currentMigration!.transaction = null
+			this.clearTransaction()
 
 			return { successCount, errorCount, errors }
 		} catch (error) {
 			await tx.rollback()
-			this.currentMigration!.transaction = null
+			this.clearTransaction()
 			throw error
 		}
 	}
@@ -663,7 +700,6 @@ export class MigrationService {
 					phasesExecuted: [],
 					nodeErrors: [],
 					relationshipErrors: [],
-					propertyWriteErrors: [],
 					propertyStats: {},
 					relationshipStats: {
 						successCount: 0,
@@ -768,8 +804,7 @@ export class MigrationService {
 			}
 
 			// Cleanup
-			await session.close()
-			await driver.close()
+			await this.cleanupDriverAndSession(driver, session)
 			this.currentMigration = null
 
 			// Emit final migration state
@@ -792,26 +827,12 @@ export class MigrationService {
 				phasesExecuted,
 				nodeErrors: nodeResult.nodeErrors,
 				relationshipErrors,
-				propertyWriteErrors: [], // No property write errors yet (future feature)
 				propertyStats,
 				relationshipStats,
 			}
 		} catch (error) {
 			// Cleanup on error
-			if (session) {
-				try {
-					await session.close()
-				} catch (e) {
-					// Ignore cleanup errors
-				}
-			}
-			if (driver) {
-				try {
-					await driver.close()
-				} catch (e) {
-					// Ignore cleanup errors
-				}
-			}
+			await this.cleanupDriverAndSession(driver, session)
 
 			this.currentMigration = null
 
@@ -826,208 +847,6 @@ export class MigrationService {
 			const errorMessage =
 				error instanceof Error ? error.message : String(error)
 			throw new Error(`Migration failed: ${errorMessage}`)
-		}
-	}
-
-	/**
-	 * Creates relationships only (skips node creation)
-	 * @param vaultPath - Path to the Obsidian vault
-	 * @param uri - Neo4j connection URI
-	 * @param credentials - Neo4j credentials
-	 * @param onProgress - Callback for progress updates
-	 * @param app - Obsidian app instance (required)
-	 * @param settings - Plugin settings (required)
-	 * @returns Migration result with relationship statistics
-	 */
-	static async createRelationshipsOnly(
-		vaultPath: string,
-		uri: string,
-		credentials: Neo4jCredentials,
-		onProgress: ProgressCallback,
-		app: App,
-		settings: PluginSettings
-	): Promise<MigrationResult> {
-		if (this.currentMigration) {
-			throw new Error("Migration already in progress")
-		}
-
-		if (!app || !settings) {
-			throw new Error("App and settings are required for relationship creation")
-		}
-
-		const startTime = Date.now()
-
-		// Initialize migration state
-		this.currentMigration = {
-			cancelled: false,
-			paused: false,
-			driver: null,
-			session: null,
-			transaction: null,
-		}
-
-		// Emit initial migration state
-		StateService.setMigrationState({
-			running: true,
-			paused: false,
-			cancelled: false,
-			progress: null,
-		})
-
-		let driver: Driver | null = null
-		let session: Session | null = null
-
-		try {
-			const scanningProgress: MigrationProgress = {
-				current: 0,
-				total: 0,
-				status: "scanning",
-			}
-			onProgress(scanningProgress)
-			StateService.setMigrationState({ progress: scanningProgress })
-
-			// Find all markdown files
-			const files = await this.findMarkdownFiles(vaultPath)
-
-			if (files.length === 0) {
-				this.currentMigration = null
-				StateService.setMigrationState({
-					running: false,
-					paused: false,
-					cancelled: false,
-					progress: null,
-				})
-				return {
-					success: true,
-					totalFiles: 0,
-					successCount: 0,
-					errorCount: 0,
-					duration: Date.now() - startTime,
-					message: "No markdown files found",
-					phasesExecuted: ["relationships"],
-					nodeErrors: [],
-					relationshipErrors: [],
-					propertyWriteErrors: [],
-					propertyStats: {},
-					relationshipStats: { successCount: 0, errorCount: 0 },
-				}
-			}
-
-			onProgress({
-				current: 0,
-				total: files.length,
-				status: "connecting",
-			})
-			StateService.setMigrationState({
-				progress: {
-					current: 0,
-					total: files.length,
-					status: "connecting",
-				},
-			})
-
-			// Connect to Neo4j
-			driver = neo4j.driver(
-				uri,
-				neo4j.auth.basic(credentials.username, credentials.password)
-			)
-			this.currentMigration.driver = driver
-
-			// Verify connection with a simple query
-			const testSession = driver.session()
-			try {
-				await testSession.run("RETURN 1 as test")
-			} finally {
-				await testSession.close()
-			}
-
-			// Create session
-			session = driver.session()
-			this.currentMigration.session = session
-
-			// Initialize property stats for all enabled properties
-			const propertyStats: Record<string, PropertyErrorStats> = {}
-			const enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
-			for (const mapping of enabledMappings) {
-				propertyStats[mapping.propertyName] = {
-					propertyName: mapping.propertyName,
-							successCount: 0,
-							errorCount: 0,
-							fileErrors: [],
-				}
-			}
-
-			// Create relationships only
-			const relResult = await this.createRelationships(
-				session,
-				vaultPath,
-				files,
-				app,
-				settings,
-				onProgress,
-				propertyStats
-			)
-
-			// Cleanup
-			await session.close()
-			await driver.close()
-			this.currentMigration = null
-
-			// Emit final migration state
-			StateService.setMigrationState({
-				running: false,
-				paused: false,
-				cancelled: false,
-				progress: null,
-			})
-
-			return {
-				success: relResult.errorCount === 0,
-				totalFiles: files.length,
-				successCount: 0, // No nodes created
-				errorCount: relResult.errorCount,
-				duration: Date.now() - startTime,
-				message: "Relationship creation completed",
-				phasesExecuted: ["relationships"],
-				nodeErrors: [],
-				relationshipErrors: relResult.errors,
-				propertyWriteErrors: [],
-				propertyStats,
-				relationshipStats: {
-					successCount: relResult.successCount,
-					errorCount: relResult.errorCount,
-				},
-			}
-		} catch (error) {
-			// Cleanup on error
-			if (session) {
-				try {
-					await session.close()
-				} catch (e) {
-					// Ignore cleanup errors
-				}
-			}
-			if (driver) {
-				try {
-					await driver.close()
-				} catch (e) {
-					// Ignore cleanup errors
-				}
-			}
-
-			this.currentMigration = null
-
-			// Emit final migration state
-			StateService.setMigrationState({
-				running: false,
-				paused: false,
-				cancelled: false,
-				progress: null,
-			})
-
-			const errorMessage =
-				error instanceof Error ? error.message : String(error)
-			throw new Error(`Relationship creation failed: ${errorMessage}`)
 		}
 	}
 
@@ -1182,7 +1001,6 @@ export class MigrationService {
 					phasesExecuted: [],
 					nodeErrors: [],
 					relationshipErrors: [],
-					propertyWriteErrors: [],
 					propertyStats: {},
 					relationshipStats: {
 						successCount: 0,
@@ -1251,9 +1069,7 @@ export class MigrationService {
 								break
 							}
 
-							const relativePath = filePath
-								.replace(vaultPath + "/", "")
-								.replace(vaultPath + "\\", "")
+							const relativePath = this.normalizePath(filePath, vaultPath)
 
 							const file = getFileFromPath(app, relativePath)
 							if (!file) continue
@@ -1392,8 +1208,7 @@ export class MigrationService {
 			}
 
 			// Cleanup
-			await session.close()
-			await driver.close()
+			await this.cleanupDriverAndSession(driver, session)
 			this.currentMigration = null
 
 			StateService.setMigrationState({
@@ -1415,7 +1230,6 @@ export class MigrationService {
 				phasesExecuted: ["nodes", "relationships"],
 				nodeErrors: nodeResult.nodeErrors,
 				relationshipErrors,
-				propertyWriteErrors: [],
 				propertyStats,
 				relationshipStats: {
 					successCount: relationshipSuccessCount,
@@ -1423,20 +1237,7 @@ export class MigrationService {
 				},
 			}
 		} catch (error) {
-			if (session) {
-				try {
-					await session.close()
-				} catch (e) {
-					// Ignore cleanup errors
-				}
-			}
-			if (driver) {
-				try {
-					await driver.close()
-				} catch (e) {
-					// Ignore cleanup errors
-				}
-			}
+			await this.cleanupDriverAndSession(driver, session)
 
 			this.currentMigration = null
 			StateService.setMigrationState({
@@ -1448,177 +1249,6 @@ export class MigrationService {
 
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			throw new Error(`Property migration failed: ${errorMessage}`)
-		}
-	}
-
-	/**
-	 * Migrates a single file (processes all enabled properties for that file)
-	 * @param filePath - Relative file path to migrate
-	 * @param vaultPath - Path to the Obsidian vault
-	 * @param uri - Neo4j connection URI
-	 * @param credentials - Neo4j credentials
-	 * @param onProgress - Callback for progress updates
-	 * @param app - Obsidian app instance (required)
-	 * @param settings - Plugin settings (required)
-	 * @returns Migration result
-	 */
-	static async migrateFile(
-		filePath: string,
-		vaultPath: string,
-		uri: string,
-		credentials: Neo4jCredentials,
-		onProgress: ProgressCallback,
-		app: App,
-		settings: PluginSettings
-	): Promise<MigrationResult> {
-		if (this.currentMigration) {
-			throw new Error("Migration already in progress")
-		}
-
-		const startTime = Date.now()
-		const fullPath = join(vaultPath, filePath)
-
-		// Initialize migration state
-		this.currentMigration = {
-			cancelled: false,
-			paused: false,
-			driver: null,
-			session: null,
-			transaction: null,
-		}
-
-		StateService.setMigrationState({
-			running: true,
-			paused: false,
-			cancelled: false,
-			progress: null,
-		})
-
-		let driver: Driver | null = null
-		let session: Session | null = null
-
-		try {
-			// Connect to Neo4j
-			driver = neo4j.driver(
-				uri,
-				neo4j.auth.basic(credentials.username, credentials.password)
-			)
-			this.currentMigration.driver = driver
-
-			// Verify connection
-			const testSession = driver.session()
-			try {
-				await testSession.run("RETURN 1 as test")
-			} finally {
-				await testSession.close()
-			}
-
-			session = driver.session()
-			this.currentMigration.session = session
-
-			// Initialize property stats for all enabled properties
-			const propertyStats: Record<string, PropertyErrorStats> = {}
-			const enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
-			for (const mapping of enabledMappings) {
-				propertyStats[mapping.propertyName] = {
-					propertyName: mapping.propertyName,
-							successCount: 0,
-							errorCount: 0,
-							fileErrors: [],
-				}
-			}
-
-			// Ensure node exists (create if missing)
-			const nodeResult = await this.migrateFiles(
-				session,
-				vaultPath,
-				[fullPath],
-				onProgress,
-				app,
-				settings
-			)
-
-			// Create relationships for all enabled properties
-			const relationshipErrors: RelationshipCreationError[] = []
-			let relationshipSuccessCount = 0
-			let relationshipErrorCount = 0
-
-			const file = getFileFromPath(app, filePath)
-			if (file) {
-				const frontMatter = extractFrontMatter(app, file)
-				if (frontMatter && settings.propertyMappings) {
-					const relResult = await this.createRelationships(
-						session,
-						vaultPath,
-						[fullPath],
-						app,
-						settings,
-						onProgress,
-						propertyStats
-					)
-					relationshipErrors.push(...relResult.errors)
-					relationshipSuccessCount = relResult.successCount
-					relationshipErrorCount = relResult.errorCount
-				}
-			}
-
-			// Cleanup
-			await session.close()
-			await driver.close()
-			this.currentMigration = null
-
-			StateService.setMigrationState({
-				running: false,
-				paused: false,
-				cancelled: false,
-				progress: null,
-			})
-
-			const totalErrorCount = nodeResult.errorCount + relationshipErrorCount
-
-			return {
-				success: nodeResult.success && totalErrorCount === 0,
-				totalFiles: 1,
-				successCount: nodeResult.successCount,
-				errorCount: totalErrorCount,
-				duration: Date.now() - startTime,
-				message: `File migration completed: ${filePath}`,
-				phasesExecuted: ["nodes", "relationships"],
-				nodeErrors: nodeResult.nodeErrors,
-				relationshipErrors,
-				propertyWriteErrors: [],
-				propertyStats,
-				relationshipStats: {
-					successCount: relationshipSuccessCount,
-					errorCount: relationshipErrorCount,
-				},
-			}
-		} catch (error) {
-			if (session) {
-				try {
-					await session.close()
-				} catch (e) {
-					// Ignore cleanup errors
-				}
-			}
-			if (driver) {
-				try {
-					await driver.close()
-				} catch (e) {
-					// Ignore cleanup errors
-				}
-			}
-
-			this.currentMigration = null
-			StateService.setMigrationState({
-				running: false,
-				paused: false,
-				cancelled: false,
-				progress: null,
-			})
-
-			const errorMessage = error instanceof Error ? error.message : String(error)
-			throw new Error(`File migration failed: ${errorMessage}`)
 		}
 	}
 }
