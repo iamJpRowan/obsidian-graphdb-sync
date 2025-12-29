@@ -1,11 +1,13 @@
-import { Notice } from "obsidian"
+import { Notice, setIcon } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
 import { MigrationService } from "../services/MigrationService"
 import { CredentialService } from "../services/CredentialService"
+import { StateService } from "../services/StateService"
 import { getVaultPath } from "../utils/obsidianApi"
 import { DEFAULT_SETTINGS } from "../types"
 import { PasswordPrompt } from "./components/PasswordPrompt"
 import { SettingsLink } from "./components/SettingsLink"
+import type { PluginState } from "../services/StateService"
 
 /**
  * Migration panel component
@@ -14,100 +16,170 @@ import { SettingsLink } from "./components/SettingsLink"
 export class MigrationPanel {
 	private plugin: GraphDBSyncPlugin
 	private container: HTMLElement
-	private controlsContainer: HTMLElement | null = null
 	private statusContainer: HTMLElement | null = null
+	private statusTextContainer: HTMLElement | null = null
 	private settingsLink: SettingsLink | null = null
+	private unsubscribeState: (() => void) | null = null
 
 	constructor(container: HTMLElement, plugin: GraphDBSyncPlugin) {
 		this.container = container
 		this.plugin = plugin
 		this.render()
+		this.subscribeToState()
 	}
 
 	private render(): void {
 		this.container.empty()
 		this.container.addClass("graphdb-migration-panel")
 
-		// Header with settings cog and status
-		const header = this.container.createDiv("graphdb-migration-panel-header")
-		
-		// Status in header
-		this.statusContainer = header.createDiv("graphdb-migration-panel-status")
+		// Status bar line: progress bar | settings
+		const statusBarLine = this.container.createDiv("graphdb-migration-status-bar-line")
+		this.statusContainer = statusBarLine.createDiv("graphdb-migration-status-container")
 		this.renderStatus()
 		
-		// Settings cog
-		const settingsContainer = header.createDiv("graphdb-migration-panel-settings")
+		// Settings cog (right)
+		const settingsContainer = statusBarLine.createDiv("graphdb-migration-panel-settings")
 		this.settingsLink = new SettingsLink(settingsContainer, this.plugin)
 		this.settingsLink.render()
 
-		// Controls
-		this.controlsContainer = this.container.createDiv("graphdb-migration-panel-controls")
-		this.renderControls()
-	}
-
-	private renderControls(): void {
-		if (!this.controlsContainer) return
-
-		this.controlsContainer.empty()
-
-		// Full Migration section
-		const fullSection = this.controlsContainer.createDiv("graphdb-migration-section")
-		fullSection.createEl("h3", {
-			text: "Full Migration",
-		})
-
-		const fullButtons = fullSection.createDiv("graphdb-migration-buttons")
+		// Action line: status text | icon button with text
+		const actionLine = this.container.createDiv("graphdb-migration-action-line")
+		this.statusTextContainer = actionLine.createDiv("graphdb-migration-status-text-container")
+		this.renderStatusText(this.statusTextContainer)
 		
-		const replaceBtn = fullButtons.createEl("button", {
-			text: "Full Migration (Replace All)",
-			cls: "mod-cta",
+		const iconContainer = actionLine.createDiv("graphdb-migration-icon-container")
+		const iconButton = iconContainer.createDiv("graphdb-migration-icon-button")
+		setIcon(iconButton, "database-backup")
+		const buttonText = iconContainer.createSpan("graphdb-migration-icon-text")
+		buttonText.setText("Run migration")
+		iconContainer.setAttr("aria-label", "Start migration")
+		iconContainer.setAttr("role", "button")
+		iconContainer.setAttr("tabindex", "0")
+		iconContainer.addEventListener("click", () => {
+			this.startFullMigration()
 		})
-		replaceBtn.addEventListener("click", () => {
-			this.startFullMigration("replace")
-		})
-
-		const updateBtn = fullButtons.createEl("button", {
-			text: "Full Migration (Update Only)",
-			cls: "mod-cta",
-		})
-		updateBtn.addEventListener("click", () => {
-			this.startFullMigration("update")
+		iconContainer.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault()
+				this.startFullMigration()
+			}
 		})
 	}
+
+	/**
+	 * Subscribes to state changes for real-time updates
+	 */
+	private subscribeToState(): void {
+		this.unsubscribeState = StateService.subscribe("migration", (state: PluginState) => {
+			this.onMigrationStateChange(state)
+		})
+	}
+
+	/**
+	 * Handles migration state changes
+	 */
+	private onMigrationStateChange(state: PluginState): void {
+		// Always re-render both status bar and status text based on current state
+		this.renderStatus()
+		if (this.statusTextContainer) {
+			this.renderStatusText(this.statusTextContainer)
+		}
+	}
+
 
 	private renderStatus(): void {
 		if (!this.statusContainer) return
 
 		this.statusContainer.empty()
 
+		const state = StateService.getMigrationStatus()
+		
+		// Show progress bar if migration is running
+		if (state.running) {
+			if (state.paused) {
+				const pausedEl = this.statusContainer.createSpan("graphdb-migration-progress-paused")
+				pausedEl.setText("⏸ Migration paused")
+			} else if (state.cancelled) {
+				const cancelledEl = this.statusContainer.createSpan("graphdb-migration-progress-cancelled")
+				cancelledEl.setText("✗ Migration cancelled")
+			} else if (state.progress) {
+				this.renderProgressBar(state.progress)
+			} else {
+				const startingEl = this.statusContainer.createSpan("graphdb-migration-progress-text")
+				startingEl.setText("Starting migration...")
+			}
+		}
+		// Leave empty when idle (status text is shown on action line)
+	}
+
+	/**
+	 * Renders status text on the action line (next to Run migration button)
+	 */
+	private renderStatusText(container: HTMLElement): void {
+		container.empty()
+
+		const state = StateService.getMigrationStatus()
+		
+		// Show progress text during migration
+		if (state.running && state.progress) {
+			const progress = state.progress
+			const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
+			const statusText = this.getStatusText(progress.status)
+			const statusEl = container.createSpan("graphdb-migration-status-text")
+			statusEl.setText(`${statusText}: ${progress.current}/${progress.total} (${percentage}%)`)
+			return
+		}
+
+		// Show last result if available (when idle)
 		const lastResult = this.plugin.settings.lastMigrationResult
 		if (lastResult) {
-			const statusEl = this.statusContainer.createDiv("graphdb-migration-status")
-			statusEl.createDiv({
-				text: lastResult.success
-					? `✓ Last migration: ${lastResult.successCount}/${lastResult.totalFiles} files`
-					: `✗ Last migration failed: ${lastResult.errorCount} errors`,
-				cls: lastResult.success ? "graphdb-migration-status-success" : "graphdb-migration-status-error",
-			})
-
-			if (lastResult.timestamp) {
-				const timeEl = statusEl.createDiv("graphdb-migration-status-time")
-				const date = new Date(lastResult.timestamp)
-				timeEl.setText(`Completed: ${date.toLocaleString()}`)
-			}
-		} else {
-			this.statusContainer.createDiv({
-				text: "No migrations run yet.",
-				cls: "graphdb-migration-status-empty",
-			})
+			const statusText = lastResult.success
+				? `✓ Last: ${lastResult.successCount}/${lastResult.totalFiles} files`
+				: `✗ ${lastResult.errorCount} errors`
+			const statusEl = container.createSpan("graphdb-migration-status-text")
+			statusEl.setText(statusText)
+			statusEl.addClass(lastResult.success ? "graphdb-migration-status-success" : "graphdb-migration-status-error")
 		}
 	}
 
-	private async startFullMigration(strategy: "replace" | "update"): Promise<void> {
+	/**
+	 * Renders progress bar on the status bar line (bar only, no text)
+	 */
+	private renderProgressBar(progress: import("../services/MigrationService").MigrationProgress): void {
+		if (!this.statusContainer) return
+
+		const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
+		
+		// Progress bar only (text is shown on action line)
+		const progressBarContainer = this.statusContainer.createDiv("graphdb-migration-progress-bar-container")
+		const progressBar = progressBarContainer.createDiv("graphdb-migration-progress-bar")
+		progressBar.style.width = `${percentage}%`
+	}
+
+	/**
+	 * Gets human-readable status text
+	 */
+	private getStatusText(status: string): string {
+		const statusMap: Record<string, string> = {
+			scanning: "Scanning files",
+			connecting: "Connecting",
+			migrating: "Migrating",
+			creating_nodes: "Creating nodes",
+			creating_relationships: "Creating relationships",
+		}
+		return statusMap[status] || status
+	}
+
+	private async startFullMigration(): Promise<void> {
 		if (MigrationService.isRunning()) {
 			new Notice("Migration already in progress")
 			return
 		}
+
+		// Clear old results when starting new migration
+		this.plugin.settings.lastMigrationResult = undefined
+		await this.plugin.saveSettings()
+		this.renderStatus()
 
 		// Get password
 		let password = CredentialService.getPassword()
@@ -123,14 +195,13 @@ export class MigrationPanel {
 		const vaultPath = getVaultPath(this.plugin.app)
 
 		try {
-			// Note: Replace vs update strategy will be implemented in Phase 4
-			// For now, just use update (MERGE)
+			// Progress updates are handled via StateService subscription
 			const result = await MigrationService.migrate(
 				vaultPath,
 				uri,
 				{ username, password },
-				(progress) => {
-					// Progress updates will be handled via StateService subscription in Phase 1
+				() => {
+					// Progress updates are handled via StateService subscription
 				},
 				this.plugin.app,
 				this.plugin.settings
@@ -171,9 +242,14 @@ export class MigrationPanel {
 	 * Cleanup
 	 */
 	destroy(): void {
+		if (this.unsubscribeState) {
+			this.unsubscribeState()
+			this.unsubscribeState = null
+		}
 		if (this.settingsLink) {
 			this.settingsLink.destroy()
 		}
 	}
 }
+
 

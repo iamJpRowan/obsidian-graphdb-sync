@@ -888,9 +888,11 @@ export class MigrationService {
 
 	/**
 	 * Checks if a migration is currently running
+	 * Uses StateService as source of truth to ensure consistency
 	 */
 	static isRunning(): boolean {
-		return this.currentMigration !== null && !this.currentMigration.cancelled
+		const state = StateService.getMigrationStatus()
+		return state.running && !state.cancelled
 	}
 
 	/**
