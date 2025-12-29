@@ -55,12 +55,13 @@
 	margin-bottom: 8px;
 }
 
-/* Action line: status text | icon button with text */
+/* Action line: status text | history link | icon button with text */
 .graphdb-migration-action-line {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 12px;
+	flex-wrap: wrap;
 }
 
 
@@ -104,6 +105,20 @@
 	font-size: 0.9em;
 	color: var(--text-normal);
 	white-space: nowrap;
+}
+
+.graphdb-migration-history-link {
+	font-size: 0.9em;
+	color: var(--text-muted);
+	cursor: pointer;
+	text-decoration: underline;
+	opacity: 0.7;
+	transition: opacity 0.2s ease;
+}
+
+.graphdb-migration-history-link:hover {
+	opacity: 1;
+	color: var(--text-normal);
 }
 
 /* Status container for progress bar line */
@@ -170,6 +185,206 @@
 .graphdb-migration-progress-cancelled {
 	color: var(--text-error);
 	font-weight: 500;
+}
+
+/* Migration History Modal */
+.graphdb-migration-history-modal {
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.graphdb-migration-history-header {
+	padding: 20px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.graphdb-migration-history-title-container {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.graphdb-migration-history-title-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-normal);
+}
+
+.graphdb-migration-history-header h2 {
+	margin: 0;
+	font-size: 1.2em;
+	font-weight: 600;
+}
+
+.graphdb-migration-history-empty {
+	padding: 40px 20px;
+	text-align: center;
+	color: var(--text-muted);
+}
+
+.graphdb-migration-history-list {
+	display: flex;
+	flex-direction: column;
+	max-height: 60vh;
+	overflow-y: auto;
+}
+
+.graphdb-migration-history-entry {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.graphdb-migration-history-entry:last-child {
+	border-bottom: none;
+}
+
+.graphdb-migration-history-entry-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 16px 20px;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.graphdb-migration-history-entry-header:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.graphdb-migration-history-entry.expanded .graphdb-migration-history-entry-header {
+	background-color: var(--background-modifier-active);
+}
+
+.graphdb-migration-history-status-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.graphdb-migration-history-status-icon.success {
+	color: var(--text-success);
+}
+
+.graphdb-migration-history-status-icon.error {
+	color: var(--text-error);
+}
+
+.graphdb-migration-history-summary {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 1;
+	min-width: 0;
+}
+
+.graphdb-migration-history-date {
+	font-size: 0.9em;
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.graphdb-migration-history-stats {
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+.graphdb-migration-history-expand {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	color: var(--text-muted);
+	flex-shrink: 0;
+	transition: transform 0.2s ease;
+}
+
+.graphdb-migration-history-details {
+	padding: 0 20px 16px 56px;
+	display: none;
+}
+
+.graphdb-migration-history-section {
+	margin-bottom: 16px;
+}
+
+.graphdb-migration-history-section:last-child {
+	margin-bottom: 0;
+}
+
+.graphdb-migration-history-section h4 {
+	margin: 0 0 8px 0;
+	font-size: 0.95em;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.graphdb-migration-history-property-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.graphdb-migration-history-property-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px;
+	background-color: var(--background-secondary);
+	border-radius: 4px;
+}
+
+.graphdb-migration-history-property-name {
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.graphdb-migration-history-property-stats {
+	font-size: 0.9em;
+	color: var(--text-muted);
+}
+
+.graphdb-migration-history-errors-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.graphdb-migration-history-error-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px;
+	background-color: var(--background-secondary);
+	border-radius: 4px;
+	border-left: 3px solid var(--text-error);
+}
+
+.graphdb-migration-history-error-file {
+	font-size: 0.85em;
+	font-weight: 500;
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+}
+
+.graphdb-migration-history-error-details {
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+.graphdb-migration-history-error-more {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	font-style: italic;
+	text-align: center;
+	padding: 8px;
 }
 
 /* Properties Container */

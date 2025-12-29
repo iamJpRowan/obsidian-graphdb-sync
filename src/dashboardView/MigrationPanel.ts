@@ -4,8 +4,9 @@ import { MigrationService } from "../services/MigrationService"
 import { CredentialService } from "../services/CredentialService"
 import { StateService } from "../services/StateService"
 import { getVaultPath } from "../utils/obsidianApi"
-import { DEFAULT_SETTINGS } from "../types"
+import { DEFAULT_SETTINGS, type MigrationHistoryEntry, type MigrationResult } from "../types"
 import { PasswordPrompt } from "./components/PasswordPrompt"
+import { MigrationHistoryModal } from "./components/MigrationHistoryModal"
 import type { PluginState } from "../services/StateService"
 
 /**
@@ -39,6 +40,24 @@ export class MigrationPanel {
 		const actionLine = this.container.createDiv("graphdb-migration-action-line")
 		this.statusTextContainer = actionLine.createDiv("graphdb-migration-status-text-container")
 		this.renderStatusText(this.statusTextContainer)
+		
+		// View History link (if history exists)
+		const history = this.plugin.settings.migrationHistory
+		if (history && history.length > 0) {
+			const historyLink = actionLine.createSpan("graphdb-migration-history-link")
+			historyLink.setText("View history")
+			historyLink.setAttr("role", "button")
+			historyLink.setAttr("tabindex", "0")
+			historyLink.addEventListener("click", () => {
+				new MigrationHistoryModal(this.plugin).open()
+			})
+			historyLink.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault()
+					new MigrationHistoryModal(this.plugin).open()
+				}
+			})
+		}
 		
 		const iconContainer = actionLine.createDiv("graphdb-migration-icon-container")
 		const iconButton = iconContainer.createDiv("graphdb-migration-icon-button")
@@ -124,7 +143,12 @@ export class MigrationPanel {
 		}
 
 		// Show last result if available (when idle)
-		const lastResult = this.plugin.settings.lastMigrationResult
+		// Use history if available, otherwise fall back to lastMigrationResult for backward compatibility
+		const history = this.plugin.settings.migrationHistory
+		const lastResult = history && history.length > 0 
+			? history[0] 
+			: this.plugin.settings.lastMigrationResult
+		
 		if (lastResult) {
 			const statusText = lastResult.success
 				? `✓ Last: ${lastResult.successCount}/${lastResult.totalFiles} files`
@@ -163,15 +187,69 @@ export class MigrationPanel {
 		return statusMap[status] || status
 	}
 
+	/**
+	 * Saves migration result to history
+	 */
+	private async saveMigrationResult(result: MigrationResult): Promise<void> {
+		// Initialize history array if it doesn't exist
+		if (!this.plugin.settings.migrationHistory) {
+			this.plugin.settings.migrationHistory = []
+		}
+
+		// Convert MigrationResult to MigrationHistoryEntry
+		const historyEntry: MigrationHistoryEntry = {
+			id: `migration-${Date.now()}`,
+			timestamp: Date.now(),
+			success: result.success,
+			totalFiles: result.totalFiles,
+			successCount: result.successCount,
+			errorCount: result.errorCount,
+			duration: result.duration,
+			message: result.message,
+			phasesExecuted: result.phasesExecuted,
+			errors: [
+				...result.nodeErrors.map(e => ({ file: e.file, error: e.error })),
+				...result.relationshipErrors.map(e => ({ file: e.file, property: e.property, target: e.target, error: e.error })),
+			],
+			relationshipStats: result.relationshipStats,
+			// Store detailed data for full view
+			nodeErrors: result.nodeErrors,
+			relationshipErrors: result.relationshipErrors,
+			propertyStats: result.propertyStats,
+		}
+
+		// Add to history (most recent first)
+		this.plugin.settings.migrationHistory.unshift(historyEntry)
+
+		// Limit history size (keep last 50 migrations)
+		const MAX_HISTORY = 50
+		if (this.plugin.settings.migrationHistory.length > MAX_HISTORY) {
+			this.plugin.settings.migrationHistory = this.plugin.settings.migrationHistory.slice(0, MAX_HISTORY)
+		}
+
+		// Update lastMigrationResult for backward compatibility
+		this.plugin.settings.lastMigrationResult = {
+			success: historyEntry.success,
+			totalFiles: historyEntry.totalFiles,
+			successCount: historyEntry.successCount,
+			errorCount: historyEntry.errorCount,
+			errors: historyEntry.errors,
+			duration: historyEntry.duration,
+			message: historyEntry.message,
+			relationshipStats: historyEntry.relationshipStats,
+			timestamp: historyEntry.timestamp,
+		}
+
+		await this.plugin.saveSettings()
+	}
+
 	private async startFullMigration(): Promise<void> {
 		if (MigrationService.isRunning()) {
 			new Notice("Migration already in progress")
 			return
 		}
 
-		// Clear old results when starting new migration
-		this.plugin.settings.lastMigrationResult = undefined
-		await this.plugin.saveSettings()
+		// Clear old results when starting new migration (status will show progress)
 		this.renderStatus()
 
 		// Get password
@@ -200,22 +278,8 @@ export class MigrationPanel {
 				this.plugin.settings
 			)
 
-			// Save result (convert MigrationResult to PluginSettings format)
-			this.plugin.settings.lastMigrationResult = {
-				success: result.success,
-				totalFiles: result.totalFiles,
-				successCount: result.successCount,
-				errorCount: result.errorCount,
-				errors: [
-					...result.nodeErrors.map(e => ({ file: e.file, error: e.error })),
-					...result.relationshipErrors.map(e => ({ file: e.file, property: e.property, target: e.target, error: e.error })),
-				],
-				duration: result.duration,
-				message: result.message,
-				relationshipStats: result.relationshipStats,
-				timestamp: Date.now(),
-			}
-			await this.plugin.saveSettings()
+			// Save result to history
+			this.saveMigrationResult(result)
 
 			// Update display
 			this.renderStatus()

@@ -31,6 +31,9 @@ export interface PluginSettings {
 	propertyMappings?: Record<string, PropertyMapping>
 	labelRules?: LabelRule[]
 	nodeLabelConfig?: NodeLabelConfig
+	// Migration history (new - stores multiple results)
+	migrationHistory?: MigrationHistoryEntry[]
+	// Last migration result (kept for backward compatibility, derived from history)
 	lastMigrationResult?: {
 		success: boolean
 		totalFiles: number
@@ -260,6 +263,29 @@ export interface MigrationResult {
 		successCount: number
 		errorCount: number
 	}
+}
+
+// Migration history entry (stored in settings)
+export interface MigrationHistoryEntry {
+	id: string // UUID or timestamp-based ID
+	timestamp: number
+	success: boolean
+	totalFiles: number
+	successCount: number
+	errorCount: number
+	duration: number
+	message?: string
+	phasesExecuted: Array<"nodes" | "relationships">
+	// Summary errors (for quick display)
+	errors: Array<{ file: string; error: string } | { file: string; property: string; target: string; error: string }>
+	relationshipStats?: {
+		successCount: number
+		errorCount: number
+	}
+	// Detailed data (optional, stored for full details view)
+	nodeErrors?: NodeCreationError[]
+	relationshipErrors?: RelationshipCreationError[]
+	propertyStats?: Record<string, PropertyErrorStats>
 }
 
 // Node property mapping
