@@ -36,11 +36,11 @@ export class SyncPanel {
 		this.container.empty()
 		this.container.addClass("graphdb-migration-panel")
 
-		// Status bar line: controls + progress bar + view queue
-		this.statusBarLine = this.container.createDiv("graphdb-migration-status-bar-line")
-
-		// Action line: status text | history link | run sync button
+		// Action line: status text | history link | run sync button (first)
 		this.actionLine = this.container.createDiv("graphdb-migration-action-line")
+
+		// Status bar line: progress bar + view queue + controls (second, reserved height)
+		this.statusBarLine = this.container.createDiv("graphdb-migration-status-bar-line")
 
 		// Render everything based on current state
 		this.renderAll()
@@ -74,8 +74,12 @@ export class SyncPanel {
 		                             queueState.queue.length > 0 || 
 		                             migrationState.running
 
-		// Show/hide status bar line
-		this.statusBarLine.style.display = shouldShowStatusBar ? "flex" : "none"
+		// Always show the container (for height reservation), but hide content when not needed
+		if (!shouldShowStatusBar) {
+			this.statusBarLine.addClass("graphdb-migration-status-bar-line-hidden")
+		} else {
+			this.statusBarLine.removeClass("graphdb-migration-status-bar-line-hidden")
+		}
 
 		// Check if we need to re-render the status bar line structure
 		// Only re-render if the structure changed (running state, paused, cancelled, queue changes)

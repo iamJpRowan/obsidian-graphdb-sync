@@ -48,21 +48,27 @@
 	margin-bottom: 8px;
 }
 
-/* Status bar line: full-width progress bar */
-.graphdb-migration-status-bar-line {
-	display: flex;
-	align-items: center;
-	margin-bottom: 8px;
-	gap: 8px;
-}
-
-/* Action line: status text | history link | icon button with text */
+/* Action line: status text | history link | run sync button (first) */
 .graphdb-migration-action-line {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 12px;
 	flex-wrap: wrap;
+	margin-bottom: 8px;
+}
+
+/* Status bar line: progress bar + view queue + controls (second, reserved height) */
+.graphdb-migration-status-bar-line {
+	display: flex;
+	align-items: center;
+	margin-bottom: 8px;
+	gap: 8px;
+	min-height: 24px; /* Reserve space to prevent jumping */
+}
+
+.graphdb-migration-status-bar-line-hidden {
+	visibility: hidden;
 }
 
 
