@@ -53,6 +53,7 @@
 	display: flex;
 	align-items: center;
 	margin-bottom: 8px;
+	gap: 8px;
 }
 
 /* Action line: status text | history link | icon button with text */
@@ -114,11 +115,44 @@
 	text-decoration: underline;
 	opacity: 0.7;
 	transition: opacity 0.2s ease;
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .graphdb-migration-history-link:hover {
 	opacity: 1;
 	color: var(--text-normal);
+}
+
+/* Control icons container (pause/resume/cancel) */
+.graphdb-sync-controls-container {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+/* Control icon (pause/resume/cancel) */
+.graphdb-sync-control-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	border-radius: 4px;
+	transition: background-color 0.2s ease;
+	color: var(--text-normal);
+	padding: 2px;
+}
+
+.graphdb-sync-control-icon:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.graphdb-sync-control-icon:active {
+	transform: scale(0.95);
 }
 
 /* Status container for progress bar line */
@@ -177,8 +211,39 @@
 	white-space: nowrap;
 }
 
+.graphdb-migration-progress-paused-container {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.graphdb-migration-progress-paused-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-warning);
+}
+
 .graphdb-migration-progress-paused {
 	color: var(--text-warning);
+	font-weight: 500;
+}
+
+.graphdb-migration-progress-pending-cancel-container {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.graphdb-migration-progress-pending-cancel-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-error);
+}
+
+.graphdb-migration-progress-pending-cancel {
+	color: var(--text-error);
 	font-weight: 500;
 }
 
