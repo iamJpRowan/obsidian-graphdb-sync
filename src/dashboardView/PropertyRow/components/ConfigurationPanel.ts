@@ -4,6 +4,7 @@ import { MappingTypeSelector } from "./MappingTypeSelector"
 import { EnabledToggle } from "./EnabledToggle"
 import { RelationshipConfigSection } from "./RelationshipConfigSection"
 import { NodePropertyConfigSection } from "./NodePropertyConfigSection"
+import { SyncIcon } from "./SyncIcon"
 import { getPropertyRowState } from "../utils/PropertyRowState"
 
 /**
@@ -18,10 +19,12 @@ export class ConfigurationPanel {
 	private enabledToggle: EnabledToggle | null = null
 	private relationshipConfigSection: RelationshipConfigSection | null = null
 	private nodePropertyConfigSection: NodePropertyConfigSection | null = null
+	private syncIcon: SyncIcon | null = null
 	private onMappingTypeChange: (mappingType: string) => void
 	private onEnabledToggleChange: (enabled: boolean) => Promise<void>
 	private onUpdateDiagram: () => void
 	private onUpdateNodePropertyDisplay: () => void
+	private onSyncClick: () => Promise<void>
 
 	constructor(
 		container: HTMLElement,
@@ -32,6 +35,7 @@ export class ConfigurationPanel {
 			onEnabledToggleChange: (enabled: boolean) => Promise<void>
 			onUpdateDiagram: () => void
 			onUpdateNodePropertyDisplay: () => void
+			onSyncClick: () => Promise<void>
 		}
 	) {
 		this.container = container
@@ -41,6 +45,7 @@ export class ConfigurationPanel {
 		this.onEnabledToggleChange = callbacks.onEnabledToggleChange
 		this.onUpdateDiagram = callbacks.onUpdateDiagram
 		this.onUpdateNodePropertyDisplay = callbacks.onUpdateNodePropertyDisplay
+		this.onSyncClick = callbacks.onSyncClick
 	}
 
 	/**
@@ -68,6 +73,15 @@ export class ConfigurationPanel {
 			validationBadgeContainer.addClass("graphdb-validation-badge-container-hidden")
 		}
 		
+		// Sync icon (next to enabled toggle)
+		// Always render if mapping is configured (not "none")
+		if (state.mappingType !== "none") {
+			const syncContainer = mappingTypeRow.createDiv("graphdb-sync-icon-wrapper")
+			this.syncIcon = new SyncIcon(syncContainer, () => this.onSyncClick())
+			// Render in default normal state - subscription will update it
+			this.syncIcon.renderNormal(!state.isEnabled)
+		}
+
 		// Enabled toggle (far right)
 		this.enabledToggle = new EnabledToggle(
 			mappingTypeRow,
@@ -96,6 +110,24 @@ export class ConfigurationPanel {
 		}
 
 		return validationBadgeContainer
+	}
+
+	/**
+	 * Updates sync icon state
+	 */
+	updateSyncState(state: "normal" | "queued" | "processing"): void {
+		if (!this.syncIcon) return
+
+		const propertyState = getPropertyRowState(this.plugin, this.propertyName)
+		const isDisabled = !propertyState.isEnabled
+
+		if (state === "normal") {
+			this.syncIcon.renderNormal(isDisabled)
+		} else if (state === "queued") {
+			this.syncIcon.renderQueued()
+		} else if (state === "processing") {
+			this.syncIcon.renderProcessing()
+		}
 	}
 
 

@@ -148,7 +148,7 @@ export class StatusBarService {
 	 * Updates the status bar icon and state
 	 * Only updates DOM when state actually changes to avoid interfering with clicks
 	 */
-	update(settings: { lastMigrationResult?: { success: boolean } }): void {
+	update(settings: { syncHistory?: Array<{ success: boolean }> }): void {
 		if (!this.statusBarIcon || !this.statusBarItem) return
 
 		const state = StateService.getState()
@@ -161,8 +161,9 @@ export class StatusBarService {
 			colorClass = "graphdb-status-warning"
 			shouldAnimate = !state.migration.paused
 		} else if (
-			settings.lastMigrationResult &&
-			!settings.lastMigrationResult.success
+			settings.syncHistory &&
+			settings.syncHistory.length > 0 &&
+			!settings.syncHistory[0].success
 		) {
 			colorClass = "graphdb-status-error"
 		} else {

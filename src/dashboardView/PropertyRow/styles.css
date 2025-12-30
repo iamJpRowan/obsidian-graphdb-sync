@@ -164,3 +164,61 @@
 	justify-content: flex-end;
 }
 
+/* Sync Icon Styles */
+.graphdb-sync-icon-wrapper {
+	display: flex;
+	align-items: center;
+}
+
+.graphdb-sync-icon-container {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	cursor: pointer;
+	user-select: none;
+	color: var(--text-normal);
+	font-size: 0.9em;
+	border-radius: 4px;
+	transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.graphdb-sync-icon-container:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.graphdb-sync-icon-container.graphdb-sync-icon-disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	color: var(--text-muted);
+}
+
+.graphdb-sync-icon-container.graphdb-sync-icon-disabled:hover {
+	background-color: transparent;
+}
+
+.graphdb-sync-icon-container.graphdb-sync-icon-queued {
+	color: var(--text-muted);
+}
+
+.graphdb-sync-icon-container.graphdb-sync-icon-processing {
+	color: var(--interactive-accent);
+}
+
+.graphdb-sync-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+}
+
+.graphdb-sync-icon-text {
+	font-size: 0.9em;
+	font-weight: 500;
+}
+
+.graphdb-sync-icon-spinning {
+	animation: spin 1s linear infinite;
+}
+

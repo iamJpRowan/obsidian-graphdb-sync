@@ -31,23 +31,8 @@ export interface PluginSettings {
 	propertyMappings?: Record<string, PropertyMapping>
 	labelRules?: LabelRule[]
 	nodeLabelConfig?: NodeLabelConfig
-	// Migration history (new - stores multiple results)
-	migrationHistory?: MigrationHistoryEntry[]
-	// Last migration result (kept for backward compatibility, derived from history)
-	lastMigrationResult?: {
-		success: boolean
-		totalFiles: number
-		successCount: number
-		errorCount: number
-		errors: Array<{ file: string; error: string } | { file: string; property: string; target: string; error: string }>
-		duration: number
-		message?: string
-		relationshipStats?: {
-			successCount: number
-			errorCount: number
-		}
-		timestamp: number
-	}
+	// Sync history (stores sync results)
+	syncHistory?: SyncHistoryEntry[]
 	lastAnalysisResult?: VaultAnalysisResult
 }
 
@@ -265,28 +250,87 @@ export interface MigrationResult {
 	}
 }
 
-// Migration history entry (stored in settings)
-export interface MigrationHistoryEntry {
-	id: string // UUID or timestamp-based ID
+// ============================================
+// Queue Types
+// ============================================
+
+/**
+ * Queue item types
+ */
+export type SyncQueueItemType = 
+	| "property-sync"      // Sync node properties
+	| "relationship-sync"  // Sync relationships
+
+/**
+ * Individual queue item
+ */
+export interface SyncQueueItem {
+	id: string
+	type: SyncQueueItemType
+	properties?: Set<string> // Set for automatic deduplication, undefined = all
+}
+
+/**
+ * Queue state
+ */
+export interface SyncQueueState {
+	queue: SyncQueueItem[]
+	current: SyncQueueItem | null // null = not processing
+}
+
+// ============================================
+// History Entry Types (Discriminated Union)
+// ============================================
+
+/**
+ * Base history entry fields
+ */
+interface BaseSyncHistoryEntry {
+	id: string
 	timestamp: number
 	success: boolean
+	duration: number
+	message?: string
+}
+
+/**
+ * Property sync history entry
+ */
+export interface PropertySyncHistoryEntry extends BaseSyncHistoryEntry {
+	type: "property-sync"
+	properties?: string[] // Array (converted from Set) - undefined = all
 	totalFiles: number
 	successCount: number
 	errorCount: number
-	duration: number
-	message?: string
-	phasesExecuted: Array<"nodes" | "relationships">
-	// Summary errors (for quick display)
-	errors: Array<{ file: string; error: string } | { file: string; property: string; target: string; error: string }>
+	errors: Array<{ file: string; error: string }>
+	nodeErrors?: NodeCreationError[]
+}
+
+/**
+ * Relationship sync history entry
+ */
+export interface RelationshipSyncHistoryEntry extends BaseSyncHistoryEntry {
+	type: "relationship-sync"
+	properties?: string[] // Array (converted from Set) - undefined = all
+	totalFiles: number
+	successCount: number
+	errorCount: number
+	errors: Array<{ file: string; property: string; target: string; error: string }>
+	relationshipErrors?: RelationshipCreationError[]
+	propertyStats?: Record<string, PropertyErrorStats>
 	relationshipStats?: {
 		successCount: number
 		errorCount: number
 	}
-	// Detailed data (optional, stored for full details view)
-	nodeErrors?: NodeCreationError[]
-	relationshipErrors?: RelationshipCreationError[]
-	propertyStats?: Record<string, PropertyErrorStats>
 }
+
+/**
+ * Discriminated union for sync history entries
+ */
+export type SyncHistoryEntry = 
+	| PropertySyncHistoryEntry
+	| RelationshipSyncHistoryEntry
+
 
 // Node property mapping
 export interface NodePropertyMapping {

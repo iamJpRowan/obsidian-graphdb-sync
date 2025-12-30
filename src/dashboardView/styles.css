@@ -301,7 +301,33 @@
 	height: 20px;
 	color: var(--text-muted);
 	flex-shrink: 0;
-	transition: transform 0.2s ease;
+	transition: transform 0.2s ease, opacity 0.2s ease;
+	cursor: pointer;
+}
+
+.graphdb-migration-history-expand:hover {
+	opacity: 0.8;
+}
+
+.graphdb-sync-queue-item-spinner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
+
+.graphdb-sync-queue-item-spinner-rotating {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 .graphdb-migration-history-details {

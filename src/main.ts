@@ -1,6 +1,7 @@
 import { Plugin, WorkspaceLeaf } from "obsidian"
 import { CredentialService } from "./services/CredentialService"
 import { StateService } from "./services/StateService"
+import { SyncQueueService } from "./services/SyncQueueService"
 import { StatusBarService } from "./statusBar/StatusBarService"
 import {
 	DashboardViewV2,
@@ -21,6 +22,9 @@ export default class GraphDBSyncPlugin extends Plugin {
 
 		// Initialize state service
 		StateService.initialize(this.settings)
+
+		// Initialize sync queue service
+		SyncQueueService.initialize(this)
 
 		// Initialize status bar service
 		this.statusBarService = new StatusBarService()
@@ -69,33 +73,6 @@ export default class GraphDBSyncPlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
-		// Migrate existing lastMigrationResult to history for backward compatibility
-		this.migrateLastMigrationResultToHistory()
-	}
-
-	/**
-	 * Migrates existing lastMigrationResult to migrationHistory for backward compatibility
-	 */
-	private migrateLastMigrationResultToHistory(): void {
-		// If history doesn't exist but lastMigrationResult does, migrate it
-		if (!this.settings.migrationHistory && this.settings.lastMigrationResult) {
-			const lastResult = this.settings.lastMigrationResult
-			// Convert to MigrationHistoryEntry format
-			this.settings.migrationHistory = [{
-				id: `migration-${lastResult.timestamp}`,
-				timestamp: lastResult.timestamp,
-				success: lastResult.success,
-				totalFiles: lastResult.totalFiles,
-				successCount: lastResult.successCount,
-				errorCount: lastResult.errorCount,
-				duration: lastResult.duration,
-				message: lastResult.message,
-				phasesExecuted: ["nodes"], // Default, we don't have this info in old format
-				errors: lastResult.errors,
-				relationshipStats: lastResult.relationshipStats,
-			}]
-			// Keep lastMigrationResult for backward compatibility
-		}
 	}
 
 	async saveSettings() {

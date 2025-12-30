@@ -7,6 +7,8 @@ import { RelationshipDiagram } from "./components/RelationshipDiagram"
 import { NodePropertyDisplay } from "./components/NodePropertyDisplay"
 import { ValidationHandler } from "./handlers/ValidationHandler"
 import { MappingTypeHandler } from "./handlers/MappingTypeHandler"
+import { PropertySyncHandler } from "./handlers/PropertySyncHandler"
+import { SyncQueueService } from "../../services/SyncQueueService"
 import { ConfigurationPanel } from "./components/ConfigurationPanel"
 import { getPropertyRowState } from "./utils/PropertyRowState"
 import "./styles.css"
@@ -28,6 +30,7 @@ export class PropertyRow {
 	private nodePropertyDisplay: NodePropertyDisplay | null = null
 	private validationHandler: ValidationHandler
 	private mappingTypeHandler: MappingTypeHandler
+	private syncHandler: PropertySyncHandler
 	private configurationPanel: ConfigurationPanel | null = null
 
 	constructor(
@@ -48,6 +51,16 @@ export class PropertyRow {
 			onRenderNodePropertyName: (mapping) => this.renderNodePropertyName(mapping),
 			onUpdateRowEnabledState: () => this.updateRowEnabledState(),
 		})
+		this.syncHandler = new PropertySyncHandler(
+			plugin,
+			property.name,
+			(state) => {
+				// Update sync icon state in configuration panel
+				if (this.configurationPanel) {
+					this.configurationPanel.updateSyncState(state)
+				}
+			}
+		)
 
 		this.render()
 		// Update initial enabled state
@@ -99,6 +112,7 @@ export class PropertyRow {
 				onEnabledToggleChange: (enabled) => this.handleEnabledToggleChange(enabled),
 				onUpdateDiagram: () => this.updateDiagramFromInput(),
 				onUpdateNodePropertyDisplay: () => this.updateNodePropertyDisplay(),
+				onSyncClick: () => this.syncHandler.handleSync(),
 			}
 		)
 		
@@ -213,6 +227,16 @@ export class PropertyRow {
 			})
 		}
 
+		// If enabling a property, add it to active full sync if one exists
+		if (enabled) {
+			const syncType = state.mappingType === "relationship" ? "relationship-sync" : "property-sync"
+			SyncQueueService.addPropertyToActiveFullSync(
+				this.property.name,
+				syncType,
+				this.plugin.settings
+			)
+		}
+
 		// Update row enabled state
 		this.updateRowEnabledState()
 	}
@@ -261,6 +285,7 @@ export class PropertyRow {
 	 * Cleanup
 	 */
 	destroy(): void {
+		this.syncHandler.destroy()
 		this.rowEl.parentElement?.remove()
 	}
 }

@@ -1,12 +1,11 @@
-import { Notice, setIcon } from "obsidian"
+import { setIcon } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
-import { MigrationService } from "../services/MigrationService"
+import { SyncQueueService } from "../services/SyncQueueService"
 import { CredentialService } from "../services/CredentialService"
 import { StateService } from "../services/StateService"
-import { getVaultPath } from "../utils/obsidianApi"
-import { DEFAULT_SETTINGS, type MigrationHistoryEntry, type MigrationResult } from "../types"
 import { PasswordPrompt } from "./components/PasswordPrompt"
 import { MigrationHistoryModal } from "./components/MigrationHistoryModal"
+import { SyncQueueModal } from "./components/SyncQueueModal"
 import type { PluginState } from "../services/StateService"
 
 /**
@@ -42,7 +41,7 @@ export class MigrationPanel {
 		this.renderStatusText(this.statusTextContainer)
 		
 		// View History link (if history exists)
-		const history = this.plugin.settings.migrationHistory
+		const history = this.plugin.settings.syncHistory
 		if (history && history.length > 0) {
 			const historyLink = actionLine.createSpan("graphdb-migration-history-link")
 			historyLink.setText("View history")
@@ -58,6 +57,21 @@ export class MigrationPanel {
 				}
 			})
 		}
+
+		// View Queue link
+		const queueLink = actionLine.createSpan("graphdb-migration-history-link")
+		queueLink.setText("View queue")
+		queueLink.setAttr("role", "button")
+		queueLink.setAttr("tabindex", "0")
+		queueLink.addEventListener("click", () => {
+			new SyncQueueModal(this.plugin).open()
+		})
+		queueLink.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault()
+				new SyncQueueModal(this.plugin).open()
+			}
+		})
 		
 		const iconContainer = actionLine.createDiv("graphdb-migration-icon-container")
 		const iconButton = iconContainer.createDiv("graphdb-migration-icon-button")
@@ -143,11 +157,8 @@ export class MigrationPanel {
 		}
 
 		// Show last result if available (when idle)
-		// Use history if available, otherwise fall back to lastMigrationResult for backward compatibility
-		const history = this.plugin.settings.migrationHistory
-		const lastResult = history && history.length > 0 
-			? history[0] 
-			: this.plugin.settings.lastMigrationResult
+		const history = this.plugin.settings.syncHistory
+		const lastResult = history && history.length > 0 ? history[0] : null
 		
 		if (lastResult) {
 			const statusText = lastResult.success
@@ -182,76 +193,14 @@ export class MigrationPanel {
 			connecting: "Connecting",
 			migrating: "Migrating",
 			creating_nodes: "Creating nodes",
+			updating_properties: "Updating properties",
 			creating_relationships: "Creating relationships",
 		}
 		return statusMap[status] || status
 	}
 
-	/**
-	 * Saves migration result to history
-	 */
-	private async saveMigrationResult(result: MigrationResult): Promise<void> {
-		// Initialize history array if it doesn't exist
-		if (!this.plugin.settings.migrationHistory) {
-			this.plugin.settings.migrationHistory = []
-		}
-
-		// Convert MigrationResult to MigrationHistoryEntry
-		const historyEntry: MigrationHistoryEntry = {
-			id: `migration-${Date.now()}`,
-			timestamp: Date.now(),
-			success: result.success,
-			totalFiles: result.totalFiles,
-			successCount: result.successCount,
-			errorCount: result.errorCount,
-			duration: result.duration,
-			message: result.message,
-			phasesExecuted: result.phasesExecuted,
-			errors: [
-				...result.nodeErrors.map(e => ({ file: e.file, error: e.error })),
-				...result.relationshipErrors.map(e => ({ file: e.file, property: e.property, target: e.target, error: e.error })),
-			],
-			relationshipStats: result.relationshipStats,
-			// Store detailed data for full view
-			nodeErrors: result.nodeErrors,
-			relationshipErrors: result.relationshipErrors,
-			propertyStats: result.propertyStats,
-		}
-
-		// Add to history (most recent first)
-		this.plugin.settings.migrationHistory.unshift(historyEntry)
-
-		// Limit history size (keep last 50 migrations)
-		const MAX_HISTORY = 50
-		if (this.plugin.settings.migrationHistory.length > MAX_HISTORY) {
-			this.plugin.settings.migrationHistory = this.plugin.settings.migrationHistory.slice(0, MAX_HISTORY)
-		}
-
-		// Update lastMigrationResult for backward compatibility
-		this.plugin.settings.lastMigrationResult = {
-			success: historyEntry.success,
-			totalFiles: historyEntry.totalFiles,
-			successCount: historyEntry.successCount,
-			errorCount: historyEntry.errorCount,
-			errors: historyEntry.errors,
-			duration: historyEntry.duration,
-			message: historyEntry.message,
-			relationshipStats: historyEntry.relationshipStats,
-			timestamp: historyEntry.timestamp,
-		}
-
-		await this.plugin.saveSettings()
-	}
 
 	private async startFullMigration(): Promise<void> {
-		if (MigrationService.isRunning()) {
-			new Notice("Migration already in progress")
-			return
-		}
-
-		// Clear old results when starting new migration (status will show progress)
-		this.renderStatus()
-
 		// Get password
 		let password = CredentialService.getPassword()
 		if (!password) {
@@ -261,41 +210,8 @@ export class MigrationPanel {
 			}
 		}
 
-		const uri = this.plugin.settings.neo4jUri || DEFAULT_SETTINGS.neo4jUri
-		const username = this.plugin.settings.neo4jUsername || DEFAULT_SETTINGS.neo4jUsername
-		const vaultPath = getVaultPath(this.plugin.app)
-
-		try {
-			// Progress updates are handled via StateService subscription
-			const result = await MigrationService.migrate(
-				vaultPath,
-				uri,
-				{ username, password },
-				() => {
-					// Progress updates are handled via StateService subscription
-				},
-				this.plugin.app,
-				this.plugin.settings
-			)
-
-			// Save result to history
-			this.saveMigrationResult(result)
-
-			// Update display
-			this.renderStatus()
-			if (this.statusTextContainer) {
-				this.renderStatusText(this.statusTextContainer)
-			}
-
-			if (result.success) {
-				new Notice(`Migration completed: ${result.successCount}/${result.totalFiles} files`)
-			} else {
-				new Notice(`Migration failed: ${result.message || "Unknown error"}`)
-			}
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : String(error)
-			new Notice(`Migration failed: ${errorMessage}`)
-		}
+		// Add full sync to queue (property-sync then relationship-sync)
+		SyncQueueService.addFullSync(this.plugin.settings)
 	}
 
 	/**

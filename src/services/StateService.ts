@@ -1,5 +1,5 @@
 import type { MigrationProgress } from "./MigrationService"
-import type { PluginSettings } from "../types"
+import type { PluginSettings, SyncQueueState } from "../types"
 
 /**
  * Migration state
@@ -16,12 +16,13 @@ export interface MigrationState {
  */
 export interface PluginState {
 	migration: MigrationState
+	queue: SyncQueueState
 }
 
 /**
  * Event types for state changes
  */
-export type StateEventType = "migration" | "all"
+export type StateEventType = "migration" | "queue" | "all"
 
 /**
  * Callback for state change events
@@ -38,6 +39,10 @@ export class StateService {
 			paused: false,
 			cancelled: false,
 			progress: null,
+		},
+		queue: {
+			queue: [],
+			current: null,
 		},
 	}
 
@@ -149,6 +154,25 @@ export class StateService {
 	 */
 	static canStartMigration(): boolean {
 		return !this.currentState.migration.running
+	}
+
+	/**
+	 * Updates queue state
+	 */
+	static setQueueState(state: Partial<SyncQueueState>): void {
+		this.currentState.queue = {
+			...this.currentState.queue,
+			...state,
+		}
+		this.emit("queue")
+		this.emit("all")
+	}
+
+	/**
+	 * Gets queue state
+	 */
+	static getQueueState(): SyncQueueState {
+		return { ...this.currentState.queue }
 	}
 }
 

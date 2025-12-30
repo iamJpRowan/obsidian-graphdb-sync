@@ -21,11 +21,25 @@ import { categorizeError } from "../utils/errorCategorizer"
 export interface MigrationProgress {
 	current: number
 	total: number
-	status: "scanning" | "connecting" | "migrating" | "creating_nodes" | "creating_relationships"
+	status: "scanning" | "connecting" | "migrating" | "creating_nodes" | "updating_properties" | "creating_relationships"
 	currentFile?: string
 }
 
 export type ProgressCallback = (progress: MigrationProgress) => void
+
+/**
+ * Options for migration
+ */
+export interface MigrationOptions {
+	/** Optional list of node property names to sync (only these will be synced) */
+	nodePropertyFilter?: string[]
+	/** Optional list of relationship property names to sync (only these will be synced) */
+	relationshipPropertyFilter?: string[]
+	/** Skip node creation phase (for relationship-only syncs) */
+	skipNodeCreation?: boolean
+	/** Skip relationship creation phase (for property-only syncs) */
+	skipRelationshipCreation?: boolean
+}
 
 /**
  * Service for migrating vault files to Neo4j
@@ -216,7 +230,8 @@ export class MigrationService {
 		files: string[],
 		onProgress: ProgressCallback,
 		app: App,
-		settings: PluginSettings
+		settings: PluginSettings,
+		nodePropertyFilter?: string[]
 	): Promise<{
 		success: boolean
 		successCount: number
@@ -271,8 +286,13 @@ export class MigrationService {
 					const file = getFileFromPath(app, relativePath)
 					const frontMatter = file ? extractFrontMatter(app, file) : null
 
-					// Get enabled node property mappings
-					const enabledNodePropertyMappings = ConfigurationService.getEnabledNodePropertyMappings(settings)
+					// Get enabled node property mappings, filtered if property filter provided
+					let enabledNodePropertyMappings = ConfigurationService.getEnabledNodePropertyMappings(settings)
+					if (nodePropertyFilter && nodePropertyFilter.length > 0) {
+						enabledNodePropertyMappings = enabledNodePropertyMappings.filter(mapping =>
+							nodePropertyFilter.includes(mapping.propertyName)
+						)
+					}
 
 					// Build SET clause for node properties
 					const setProperties: Record<string, unknown> = {
@@ -383,7 +403,8 @@ export class MigrationService {
 		app: App,
 		settings: PluginSettings,
 		onProgress: ProgressCallback,
-		propertyStats: Record<string, PropertyErrorStats>
+		propertyStats: Record<string, PropertyErrorStats>,
+		relationshipPropertyFilter?: string[]
 	): Promise<{
 		successCount: number
 		errorCount: number
@@ -393,8 +414,13 @@ export class MigrationService {
 		let errorCount = 0
 		const errors: RelationshipCreationError[] = []
 
-		// Get all enabled relationship mappings
-		const enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
+		// Get all enabled relationship mappings, filtered if property filter provided
+		let enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
+		if (relationshipPropertyFilter && relationshipPropertyFilter.length > 0) {
+			enabledMappings = enabledMappings.filter(mapping =>
+				relationshipPropertyFilter.includes(mapping.propertyName)
+			)
+		}
 		const relationshipMappings = enabledMappings.map((mapping) => ({
 			propertyName: mapping.propertyName,
 			config: {
@@ -632,8 +658,9 @@ export class MigrationService {
 	 * @param uri - Neo4j connection URI
 	 * @param credentials - Neo4j credentials
 	 * @param onProgress - Callback for progress updates
-	 * @param app - Obsidian app instance (required for relationship creation)
-	 * @param settings - Plugin settings (required for relationship creation)
+	 * @param app - Obsidian app instance (required for node/relationship creation)
+	 * @param settings - Plugin settings (required for node/relationship creation)
+	 * @param options - Optional migration options
 	 * @returns Migration result
 	 */
 	static async migrate(
@@ -642,11 +669,19 @@ export class MigrationService {
 		credentials: Neo4jCredentials,
 		onProgress: ProgressCallback,
 		app?: App,
-		settings?: PluginSettings
+		settings?: PluginSettings,
+		options?: MigrationOptions
 	): Promise<MigrationResult> {
 		if (this.currentMigration) {
 			throw new Error("Migration already in progress")
 		}
+
+		// Extract options with defaults
+		const opts = options || {}
+		const nodePropertyFilter = opts.nodePropertyFilter
+		const relationshipPropertyFilter = opts.relationshipPropertyFilter
+		const skipNodeCreation = opts.skipNodeCreation || false
+		const skipRelationshipCreation = opts.skipRelationshipCreation || false
 
 		const startTime = Date.now()
 
@@ -740,23 +775,49 @@ export class MigrationService {
 			session = driver.session()
 			this.currentMigration.session = session
 
-			onProgress({
-				current: 0,
-				total: files.length,
-				status: "creating_nodes",
-			})
-			StateService.setMigrationState({
-				progress: {
+			// Set appropriate status based on what we're doing
+			if (!skipNodeCreation) {
+				// Determine if this is a property update or full node creation
+				const isPropertyUpdate = nodePropertyFilter && nodePropertyFilter.length > 0
+				const status = isPropertyUpdate ? "updating_properties" : "creating_nodes"
+				
+				onProgress({
 					current: 0,
 					total: files.length,
-					status: "creating_nodes",
-				},
-			})
+					status,
+				})
+				StateService.setMigrationState({
+					progress: {
+						current: 0,
+						total: files.length,
+						status,
+					},
+				})
+			} else {
+				// For relationship-only syncs, start with "creating_relationships" status
+				onProgress({
+					current: 0,
+					total: files.length,
+					status: "creating_relationships",
+				})
+				StateService.setMigrationState({
+					progress: {
+						current: 0,
+						total: files.length,
+						status: "creating_relationships",
+					},
+				})
+			}
 
-			// Initialize property stats for all enabled properties
+			// Initialize property stats for enabled properties (filtered if relationshipPropertyFilter provided)
 			const propertyStats: Record<string, PropertyErrorStats> = {}
 			if (settings) {
-				const enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
+				let enabledMappings = ConfigurationService.getEnabledRelationshipMappings(settings)
+				if (relationshipPropertyFilter && relationshipPropertyFilter.length > 0) {
+					enabledMappings = enabledMappings.filter(mapping =>
+						relationshipPropertyFilter.includes(mapping.propertyName)
+					)
+				}
 				for (const mapping of enabledMappings) {
 					propertyStats[mapping.propertyName] = {
 						propertyName: mapping.propertyName,
@@ -767,25 +828,49 @@ export class MigrationService {
 				}
 			}
 
-			// Phase 1: Create nodes
-			if (!app || !settings) {
-				throw new Error("App and settings are required for migration")
+			// Phase 1: Create nodes (skip if skipNodeCreation is true)
+			let nodeResult: {
+				success: boolean
+				successCount: number
+				errorCount: number
+				nodeErrors: NodeCreationError[]
+				duration: number
+				message: string | undefined
+			} = {
+				success: true,
+				successCount: 0,
+				errorCount: 0,
+				nodeErrors: [],
+				duration: 0,
+				message: undefined,
 			}
-			const nodeResult = await this.migrateFiles(
-				session,
-				vaultPath,
-				files,
-				onProgress,
-				app,
-				settings
-			)
-			const phasesExecuted: Array<"nodes" | "relationships"> = ["nodes"]
+			const phasesExecuted: Array<"nodes" | "relationships"> = []
+			
+			if (!skipNodeCreation) {
+				if (!app || !settings) {
+					throw new Error("App and settings are required for migration")
+				}
+				const migrateResult = await this.migrateFiles(
+					session,
+					vaultPath,
+					files,
+					onProgress,
+					app,
+					settings,
+					nodePropertyFilter
+				)
+				nodeResult = {
+					...migrateResult,
+					message: migrateResult.message,
+				}
+				phasesExecuted.push("nodes")
+			}
 
-			// Phase 2: Create relationships (if app and settings provided)
+			// Phase 2: Create relationships (if app and settings provided and not skipped)
 			let relationshipStats = { successCount: 0, errorCount: 0 }
 			const relationshipErrors: RelationshipCreationError[] = []
 
-			if (app && settings && !this.currentMigration?.cancelled) {
+			if (app && settings && !this.currentMigration?.cancelled && !skipRelationshipCreation) {
 				const relResult = await this.createRelationships(
 					session,
 					vaultPath,
@@ -793,7 +878,8 @@ export class MigrationService {
 					app,
 					settings,
 					onProgress,
-					propertyStats
+					propertyStats,
+					relationshipPropertyFilter
 				)
 				phasesExecuted.push("relationships")
 				relationshipStats = {
@@ -1048,7 +1134,8 @@ export class MigrationService {
 				filesWithProperty,
 				onProgress,
 				app,
-				settings
+				settings,
+				undefined // No property filter for this legacy method
 			)
 
 			// Create relationships for this property only
