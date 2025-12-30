@@ -78,7 +78,7 @@ export class ConfigurationService {
 	}
 
 	/**
-	 * Gets all enabled relationship mappings (for MigrationService)
+	 * Gets all enabled relationship mappings (for SyncService)
 	 */
 	static getEnabledRelationshipMappings(settings: PluginSettings): RelationshipMapping[] {
 		return this.getRelationshipMappings(settings).filter(m => m.enabled)
@@ -151,7 +151,7 @@ export class ConfigurationService {
 	}
 
 	/**
-	 * Gets all enabled node property mappings (for MigrationService)
+	 * Gets all enabled node property mappings (for SyncService)
 	 */
 	static getEnabledNodePropertyMappings(settings: PluginSettings): NodePropertyMapping[] {
 		return this.getNodePropertyMappings(settings).filter(m => m.enabled)

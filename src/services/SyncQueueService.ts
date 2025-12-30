@@ -7,7 +7,8 @@ import type {
 	SyncHistoryEntry,
 } from "../types"
 import { StateService } from "./StateService"
-import { MigrationService } from "./MigrationService"
+import { syncNodePropertiesOnly, syncRelationshipsOnly } from "./SyncService"
+import type { SyncContext, SyncProgress } from "./SyncService/types"
 import { ConfigurationService } from "./ConfigurationService"
 import { CredentialService } from "./CredentialService"
 import { getVaultPath } from "../utils/obsidianApi"
@@ -344,77 +345,44 @@ export class SyncQueueService {
 		app: import("obsidian").App,
 		settings: PluginSettings
 	): Promise<void> {
-		// Convert Set to array for MigrationService
+		// Convert Set to array for SyncService
 		const properties = item.properties ? Array.from(item.properties) : undefined
 
-		// If properties specified, sync only those properties
-		// Otherwise, sync all enabled node properties
-		if (properties && properties.length > 0) {
-			// Sync specific properties
-			const result = await MigrationService.migrate(
-				vaultPath,
-				uri,
-				credentials,
-				() => {}, // Progress handled by StateService
-				app,
-				settings,
-				{
-					nodePropertyFilter: properties,
-					skipRelationshipCreation: true, // Skip relationships for property-only syncs
-				}
-			)
-
-			// Create history entry
-			await this.saveHistoryEntry({
-				type: "property-sync",
-				id: `sync-${Date.now()}`,
-				timestamp: Date.now(),
-				success: result.success,
-				duration: result.duration,
-				message: result.message || "Property sync completed",
-				properties,
-				totalFiles: result.totalFiles,
-				successCount: result.successCount,
-				errorCount: result.errorCount,
-				errors: result.nodeErrors.map((e) => ({
-					file: e.file,
-					error: e.error,
-				})),
-				nodeErrors: result.nodeErrors,
-			})
-		} else {
-			// Full property sync (all enabled node properties)
-			const result = await MigrationService.migrate(
-				vaultPath,
-				uri,
-				credentials,
-				() => {},
-				app,
-				settings,
-				{
-					skipRelationshipCreation: true, // Skip relationships for property-only syncs
-				}
-			)
-
-			// Create history entry
-			await this.saveHistoryEntry({
-				type: "property-sync",
-				id: `sync-${Date.now()}`,
-				timestamp: Date.now(),
-				success: result.success,
-				duration: result.duration,
-				message: result.message || "Full property sync completed",
-				properties: undefined,
-				totalFiles: result.totalFiles,
-				successCount: result.successCount,
-				errorCount: result.errorCount,
-				errors: result.nodeErrors.map((e) => ({
-					file: e.file,
-					error: e.error,
-				})),
-				nodeErrors: result.nodeErrors,
-			})
+		// Create sync context
+		const context: SyncContext = {
+			vaultPath,
+			uri,
+			credentials,
+			app,
+			settings,
+			onProgress: (progress: SyncProgress) => {
+				StateService.setMigrationState({ progress })
+			},
 		}
+
+		// Sync node properties only
+		const result = await syncNodePropertiesOnly(context, {
+			nodePropertyFilter: properties,
+		})
+
+		// Create history entry
+		await this.saveHistoryEntry({
+			type: "property-sync",
+			id: `sync-${Date.now()}`,
+			timestamp: Date.now(),
+			success: result.success,
+			duration: result.duration,
+			message: result.message || (properties && properties.length > 0 ? "Property sync completed" : "Full property sync completed"),
+			properties,
+			totalFiles: result.totalFiles,
+			successCount: result.successCount,
+			errorCount: result.errorCount,
+			errors: result.nodeErrors.map((e) => ({
+				file: e.file,
+				error: e.error,
+			})),
+			nodeErrors: result.nodeErrors,
+		})
 	}
 
 	/**
@@ -428,23 +396,25 @@ export class SyncQueueService {
 		app: import("obsidian").App,
 		settings: PluginSettings
 	): Promise<void> {
-		// Convert Set to array for MigrationService
+		// Convert Set to array for SyncService
 		const properties = item.properties ? Array.from(item.properties) : undefined
 
-		// Sync specific relationship properties or all if none specified
-		// Skip node creation for relationship-only syncs
-		const result = await MigrationService.migrate(
+		// Create sync context
+		const context: SyncContext = {
 			vaultPath,
 			uri,
 			credentials,
-			() => {},
 			app,
 			settings,
-			{
-				relationshipPropertyFilter: properties,
-				skipNodeCreation: true, // Skip node creation - only sync relationships
-			}
-		)
+			onProgress: (progress: SyncProgress) => {
+				StateService.setMigrationState({ progress })
+			},
+		}
+
+		// Sync relationships only
+		const result = await syncRelationshipsOnly(context, {
+			relationshipPropertyFilter: properties,
+		})
 
 		// Create history entry
 		this.saveHistoryEntry({

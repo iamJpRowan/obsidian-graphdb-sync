@@ -1,4 +1,4 @@
-import type { MigrationProgress } from "./MigrationService"
+import type { SyncProgress } from "./SyncService/types"
 import type { PluginSettings, SyncQueueState } from "../types"
 
 /**
@@ -8,7 +8,7 @@ export interface MigrationState {
 	running: boolean
 	paused: boolean
 	cancelled: boolean
-	progress: MigrationProgress | null
+	progress: SyncProgress | null
 }
 
 /**

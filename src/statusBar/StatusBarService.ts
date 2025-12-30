@@ -1,6 +1,6 @@
 import { Menu } from "obsidian"
 import { StateService } from "../services/StateService"
-import { MigrationService } from "../services/MigrationService"
+import { pauseSync, resumeSync, cancelSync } from "../services/SyncService"
 import { openSettings } from "../utils/obsidianApi"
 import type GraphDBSyncPlugin from "../main"
 
@@ -83,7 +83,7 @@ export class StatusBarService {
 					item.setTitle("Resume migration")
 					item.setIcon("play")
 					item.onClick(() => {
-						MigrationService.resume()
+						resumeSync()
 					})
 				})
 			} else {
@@ -91,7 +91,7 @@ export class StatusBarService {
 					item.setTitle("Pause migration")
 					item.setIcon("pause")
 					item.onClick(() => {
-						MigrationService.pause()
+						pauseSync()
 					})
 				})
 			}
@@ -100,7 +100,7 @@ export class StatusBarService {
 				item.setTitle("Cancel migration")
 				item.setIcon("x")
 				item.onClick(() => {
-					MigrationService.cancel()
+					cancelSync()
 				})
 			})
 		} else {

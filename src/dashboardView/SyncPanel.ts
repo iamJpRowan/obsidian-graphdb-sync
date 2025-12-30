@@ -9,10 +9,10 @@ import { SyncQueueModal } from "./components/SyncQueueModal"
 import type { PluginState } from "../services/StateService"
 
 /**
- * Migration panel component
- * Handles full migrations and displays migration status
+ * Sync panel component
+ * Handles full syncs and displays sync status
  */
-export class MigrationPanel {
+export class SyncPanel {
 	private plugin: GraphDBSyncPlugin
 	private container: HTMLElement
 	private statusContainer: HTMLElement | null = null
@@ -77,17 +77,17 @@ export class MigrationPanel {
 		const iconButton = iconContainer.createDiv("graphdb-migration-icon-button")
 		setIcon(iconButton, "database-backup")
 		const buttonText = iconContainer.createSpan("graphdb-migration-icon-text")
-		buttonText.setText("Run migration")
-		iconContainer.setAttr("aria-label", "Start migration")
+		buttonText.setText("Run sync")
+		iconContainer.setAttr("aria-label", "Start sync")
 		iconContainer.setAttr("role", "button")
 		iconContainer.setAttr("tabindex", "0")
 		iconContainer.addEventListener("click", () => {
-			this.startFullMigration()
+			this.startFullSync()
 		})
 		iconContainer.addEventListener("keydown", (e) => {
 			if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault()
-				this.startFullMigration()
+				this.startFullSync()
 			}
 		})
 	}
@@ -97,14 +97,14 @@ export class MigrationPanel {
 	 */
 	private subscribeToState(): void {
 		this.unsubscribeState = StateService.subscribe("migration", (state: PluginState) => {
-			this.onMigrationStateChange(state)
+			this.onSyncStateChange(state)
 		})
 	}
 
 	/**
-	 * Handles migration state changes
+	 * Handles sync state changes
 	 */
-	private onMigrationStateChange(state: PluginState): void {
+	private onSyncStateChange(state: PluginState): void {
 		// Always re-render both status bar and status text based on current state
 		this.renderStatus()
 		if (this.statusTextContainer) {
@@ -120,33 +120,33 @@ export class MigrationPanel {
 
 		const state = StateService.getMigrationStatus()
 		
-		// Show progress bar if migration is running
+		// Show progress bar if sync is running
 		if (state.running) {
 			if (state.paused) {
 				const pausedEl = this.statusContainer.createSpan("graphdb-migration-progress-paused")
-				pausedEl.setText("⏸ Migration paused")
+				pausedEl.setText("⏸ Sync paused")
 			} else if (state.cancelled) {
 				const cancelledEl = this.statusContainer.createSpan("graphdb-migration-progress-cancelled")
-				cancelledEl.setText("✗ Migration cancelled")
+				cancelledEl.setText("✗ Sync cancelled")
 			} else if (state.progress) {
 				this.renderProgressBar(state.progress)
 			} else {
 				const startingEl = this.statusContainer.createSpan("graphdb-migration-progress-text")
-				startingEl.setText("Starting migration...")
+				startingEl.setText("Starting sync...")
 			}
 		}
 		// Leave empty when idle (status text is shown on action line)
 	}
 
 	/**
-	 * Renders status text on the action line (next to Run migration button)
+	 * Renders status text on the action line (next to Run sync button)
 	 */
 	private renderStatusText(container: HTMLElement): void {
 		container.empty()
 
 		const state = StateService.getMigrationStatus()
 		
-		// Show progress text during migration
+		// Show progress text during sync
 		if (state.running && state.progress) {
 			const progress = state.progress
 			const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
@@ -173,7 +173,7 @@ export class MigrationPanel {
 	/**
 	 * Renders progress bar on the status bar line (bar only, no text)
 	 */
-	private renderProgressBar(progress: import("../services/MigrationService").MigrationProgress): void {
+	private renderProgressBar(progress: import("../services/SyncService/types").SyncProgress): void {
 		if (!this.statusContainer) return
 
 		const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
@@ -191,7 +191,6 @@ export class MigrationPanel {
 		const statusMap: Record<string, string> = {
 			scanning: "Scanning files",
 			connecting: "Connecting",
-			migrating: "Migrating",
 			creating_nodes: "Creating nodes",
 			updating_properties: "Updating properties",
 			creating_relationships: "Creating relationships",
@@ -200,7 +199,7 @@ export class MigrationPanel {
 	}
 
 
-	private async startFullMigration(): Promise<void> {
+	private async startFullSync(): Promise<void> {
 		// Get password
 		let password = CredentialService.getPassword()
 		if (!password) {
@@ -224,5 +223,4 @@ export class MigrationPanel {
 		}
 	}
 }
-
 

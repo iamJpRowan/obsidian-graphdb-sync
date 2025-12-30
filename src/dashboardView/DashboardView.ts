@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian"
 import type GraphDBSyncPlugin from "../main"
 import { PropertiesTab } from "./PropertiesTab"
-import { MigrationPanel } from "./MigrationPanel"
+import { SyncPanel } from "./SyncPanel"
 import { SettingsLink } from "./components/SettingsLink"
 import "./styles.css"
 
@@ -14,7 +14,7 @@ export const DASHBOARD_VIEW_TYPE_V2 = "graphdb-sync-dashboard"
 export class DashboardViewV2 extends ItemView {
 	plugin: GraphDBSyncPlugin
 	private contentContainer: HTMLElement | null = null
-	private migrationPanel: MigrationPanel | null = null
+	private syncPanel: SyncPanel | null = null
 	private propertiesTab: PropertiesTab | null = null
 	private settingsLink: SettingsLink | null = null
 
@@ -41,8 +41,8 @@ export class DashboardViewV2 extends ItemView {
 
 	async onClose(): Promise<void> {
 		// Cleanup
-		if (this.migrationPanel) {
-			this.migrationPanel.destroy()
+		if (this.syncPanel) {
+			this.syncPanel.destroy()
 		}
 		if (this.propertiesTab) {
 			this.propertiesTab.destroy()
@@ -71,9 +71,9 @@ export class DashboardViewV2 extends ItemView {
 		// Main content container
 		this.contentContainer = contentEl.createDiv("graphdb-dashboard-v2-content")
 
-		// Migration Panel
-		const migrationContainer = this.contentContainer.createDiv("graphdb-migration-panel-container")
-		this.migrationPanel = new MigrationPanel(migrationContainer, this.plugin)
+		// Sync Panel
+		const syncContainer = this.contentContainer.createDiv("graphdb-migration-panel-container")
+		this.syncPanel = new SyncPanel(syncContainer, this.plugin)
 
 		// Properties Tab (default view)
 		const propertiesContainer = this.contentContainer.createDiv("graphdb-properties-container")
