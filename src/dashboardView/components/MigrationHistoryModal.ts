@@ -128,9 +128,9 @@ export class MigrationHistoryModal extends Modal {
 	 */
 	private renderEntryDetails(container: HTMLElement, entry: SyncHistoryEntry): void {
 		if (entry.type === "property-sync") {
-			this.renderPropertySyncDetails(container, entry as PropertySyncHistoryEntry)
+			this.renderPropertySyncDetails(container, entry)
 		} else if (entry.type === "relationship-sync") {
-			this.renderRelationshipSyncDetails(container, entry as RelationshipSyncHistoryEntry)
+			this.renderRelationshipSyncDetails(container, entry)
 		}
 
 		// Errors (common to both types)
@@ -139,20 +139,24 @@ export class MigrationHistoryModal extends Modal {
 			errorsEl.createEl("h4", { text: `Errors (${entry.errors.length})` })
 			const errorsList = errorsEl.createDiv("graphdb-migration-history-errors-list")
 			
-			entry.errors.slice(0, 10).forEach(error => {
-				const errorItem = errorsList.createDiv("graphdb-migration-history-error-item")
-				if ("property" in error) {
-					// Relationship error
+			// Handle errors based on entry type
+			if (entry.type === "relationship-sync") {
+				// Relationship errors have property and target
+				entry.errors.slice(0, 10).forEach(error => {
+					const errorItem = errorsList.createDiv("graphdb-migration-history-error-item")
 					errorItem.createSpan("graphdb-migration-history-error-file").setText(error.file)
 					errorItem.createSpan("graphdb-migration-history-error-details").setText(
 						`${error.property} → ${error.target}: ${error.error}`
 					)
-				} else {
-					// Node error
+				})
+			} else {
+				// Property sync errors only have file and error
+				entry.errors.slice(0, 10).forEach(error => {
+					const errorItem = errorsList.createDiv("graphdb-migration-history-error-item")
 					errorItem.createSpan("graphdb-migration-history-error-file").setText(error.file)
 					errorItem.createSpan("graphdb-migration-history-error-details").setText(error.error)
-				}
-			})
+				})
+			}
 			
 			if (entry.errors.length > 10) {
 				errorsList.createDiv("graphdb-migration-history-error-more").setText(

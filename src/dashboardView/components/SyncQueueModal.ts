@@ -8,6 +8,8 @@ import { SyncQueueService } from "../../services/SyncQueueService"
  */
 export class SyncQueueModal extends Modal {
 	private plugin: GraphDBSyncPlugin
+	private unsubscribeQueue: (() => void) | null = null
+	private listContainer: HTMLElement | null = null
 
 	constructor(plugin: GraphDBSyncPlugin) {
 		super(plugin.app)
@@ -26,33 +28,60 @@ export class SyncQueueModal extends Modal {
 		setIcon(titleIcon, "list-ordered")
 		titleContainer.createEl("h2", { text: "Sync queue" })
 
-		// Get queue state at open time (no subscription)
-		const queueState = StateService.getQueueState()
+		// Create container for queue items (will be updated on state changes)
+		this.listContainer = contentEl.createDiv("graphdb-migration-history-list")
 
-		if (queueState.queue.length === 0 && !queueState.current) {
-			const emptyState = contentEl.createDiv("graphdb-migration-history-empty")
-			emptyState.setText("Queue is empty")
-			return
-		}
-
-		const listContainer = contentEl.createDiv("graphdb-migration-history-list")
-
-		// Show current item if processing
-		if (queueState.current) {
-			const currentEl = listContainer.createDiv("graphdb-migration-history-entry")
-			this.renderQueueItem(currentEl, queueState.current, true)
-		}
-
-		// Show pending items
-		queueState.queue.forEach((item) => {
-			const itemEl = listContainer.createDiv("graphdb-migration-history-entry")
-			this.renderQueueItem(itemEl, item, false)
+		// Subscribe to queue state changes
+		this.unsubscribeQueue = StateService.subscribe("queue", () => {
+			this.renderQueueItems()
 		})
+
+		// Initial render
+		this.renderQueueItems()
 	}
 
 	onClose(): void {
 		const { contentEl } = this
 		contentEl.empty()
+		
+		// Clean up subscription
+		if (this.unsubscribeQueue) {
+			this.unsubscribeQueue()
+			this.unsubscribeQueue = null
+		}
+		
+		this.listContainer = null
+	}
+
+	/**
+	 * Renders queue items based on current state
+	 */
+	private renderQueueItems(): void {
+		if (!this.listContainer) return
+
+		// Clear existing items
+		this.listContainer.empty()
+
+		// Get current queue state
+		const queueState = StateService.getQueueState()
+
+		if (queueState.queue.length === 0 && !queueState.current) {
+			const emptyState = this.listContainer.createDiv("graphdb-migration-history-empty")
+			emptyState.setText("Queue is empty")
+			return
+		}
+
+		// Show current item if processing
+		if (queueState.current) {
+			const currentEl = this.listContainer.createDiv("graphdb-migration-history-entry")
+			this.renderQueueItem(currentEl, queueState.current, true)
+		}
+
+		// Show pending items
+		queueState.queue.forEach((item) => {
+			const itemEl = this.listContainer!.createDiv("graphdb-migration-history-entry")
+			this.renderQueueItem(itemEl, item, false)
+		})
 	}
 
 	/**
@@ -107,14 +136,13 @@ export class SyncQueueModal extends Modal {
 			removeBtn.addEventListener("click", (e) => {
 				e.stopPropagation()
 				SyncQueueService.removeItem(item.id)
-				// Re-render modal
-				this.onOpen()
+				// Re-render will happen automatically via subscription
 			})
 			removeBtn.addEventListener("keydown", (e) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault()
 					SyncQueueService.removeItem(item.id)
-					this.onOpen()
+					// Re-render will happen automatically via subscription
 				}
 			})
 		}
