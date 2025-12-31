@@ -4,6 +4,13 @@ This directory contains historical development decisions, architectural consider
 
 ## Entries
 
+- [2025-12-31 - Queue-Based Sync System: Phase-Based Architecture](./2025-12-31-queue-based-sync-system.md)
+  - Queue-based sync architecture
+  - Phase-based sync types (property-sync, relationship-sync, file-sync)
+  - Service refactoring (MigrationService → SyncService)
+  - Property batching and merging
+  - UI enhancements (queue modal, pause/resume/cancel)
+
 - [2025-12-04 - Neo4j Migration Plugin: Initial Implementation and Architecture](./2025-12-04-neo4j-migration-plugin-initial-implementation.md)
   - Initial plugin implementation
   - State management architecture
