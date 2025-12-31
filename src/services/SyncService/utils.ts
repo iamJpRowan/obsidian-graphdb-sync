@@ -1,4 +1,4 @@
-import type { FrontMatterValue } from "../../types"
+import type { FrontMatterValue, PluginSettings } from "../../types"
 
 /**
  * Extracts the filename without extension from a full path
@@ -108,5 +108,58 @@ export function convertValueToNeo4jType(
 			// Fallback to string
 			return String(value)
 	}
+}
+
+/**
+ * Safely extracts a numeric value from a Neo4j counter
+ * Counters can be Integer objects (with toNumber()) or plain numbers
+ */
+export function extractCounterValue(counter: unknown): number {
+	if (counter === null || counter === undefined) {
+		return 0
+	}
+	
+	if (typeof counter === 'number') {
+		return counter
+	}
+	
+	// Check if it's an Integer object with toNumber method
+	if (typeof counter === 'object' && counter !== null && 'toNumber' in counter) {
+		const integer = counter as { toNumber: () => number }
+		return integer.toNumber()
+	}
+	
+	return 0
+}
+
+/**
+ * Calculates optimal batch size for sync operations
+ * @param totalFiles - Total number of files to process
+ * @param propertyCount - Number of properties being synced
+ * @param settings - Plugin settings (for manual batch size override)
+ * @returns Batch size to use
+ */
+export function calculateBatchSize(
+	totalFiles: number,
+	propertyCount: number,
+	settings: PluginSettings
+): number {
+	// Use manual batch size if specified
+	if (settings.syncBatchSize && settings.syncBatchSize !== "auto") {
+		return settings.syncBatchSize
+	}
+
+	// Auto mode: calculate based on file count
+	// Smaller vaults: smaller batches (less benefit, simpler)
+	if (totalFiles < 100) return 50
+
+	// Medium vaults: medium batches
+	if (totalFiles < 1000) return 100
+
+	// Large vaults: larger batches
+	if (totalFiles < 5000) return 250
+
+	// Very large vaults: largest batches
+	return 500
 }
 

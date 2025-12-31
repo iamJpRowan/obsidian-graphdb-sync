@@ -1,6 +1,6 @@
 import { Modal, setIcon } from "obsidian"
 import type GraphDBSyncPlugin from "../../main"
-import type { SyncHistoryEntry, PropertySyncHistoryEntry, RelationshipSyncHistoryEntry } from "../../types"
+import type { SyncItem, PropertySyncItem, RelationshipSyncItem } from "../../types"
 
 /**
  * Modal for displaying sync history and detailed results
@@ -36,7 +36,7 @@ export class MigrationHistoryModal extends Modal {
 
 		const listContainer = contentEl.createDiv("graphdb-migration-history-list")
 		
-		history.forEach((entry: SyncHistoryEntry) => {
+		history.forEach((entry: SyncItem) => {
 			const entryEl = listContainer.createDiv("graphdb-migration-history-entry")
 			entryEl.setAttr("data-entry-id", entry.id)
 			
@@ -45,22 +45,79 @@ export class MigrationHistoryModal extends Modal {
 			headerEl.setAttr("role", "button")
 			headerEl.setAttr("tabindex", "0")
 			
-			// Status icon
-			const statusIcon = headerEl.createSpan("graphdb-migration-history-status-icon")
-			statusIcon.setText(entry.success ? "✓" : "✗")
-			statusIcon.addClass(entry.success ? "success" : "error")
-			
-			// Summary with informative title
+			// Summary with all content
 			const summary = headerEl.createDiv("graphdb-migration-history-summary")
 			
-			// Title showing sync type and properties
-			const titleEl = summary.createSpan("graphdb-migration-history-date")
-			titleEl.setText(this.getSyncTitle(entry))
+			// Line 1: Status icon + text, sync type, date/time (all on one row)
+			const line1 = summary.createDiv("graphdb-migration-history-line1")
 			
-			// Stats
-			summary.createSpan("graphdb-migration-history-stats").setText(
-				`${entry.successCount}/${entry.totalFiles} files • ${entry.errorCount} errors • ${this.formatDuration(entry.duration)}`
-			)
+			// Status icon and text
+			const statusContainer = line1.createDiv("graphdb-migration-history-status-container")
+			const statusIcon = statusContainer.createSpan("graphdb-migration-history-status-icon")
+			const statusText = statusContainer.createSpan("graphdb-migration-history-status-text")
+			
+			if (entry.status === "completed") {
+				setIcon(statusIcon, "check")
+				statusIcon.addClass("success")
+				statusText.setText("Completed")
+			} else if (entry.status === "cancelled") {
+				setIcon(statusIcon, "x")
+				statusIcon.addClass("cancelled")
+				statusText.setText("Canceled")
+			} else if (entry.status === "error") {
+				setIcon(statusIcon, "alert-circle")
+				statusIcon.addClass("error")
+				statusText.setText("Error")
+			}
+			
+			// Sync type and date/time
+			const typeText = entry.type === "property-sync" ? "Property sync" : "Relationship sync"
+			const dateStr = entry.timestamp !== null 
+				? new Date(entry.timestamp).toLocaleString()
+				: "No timestamp"
+			line1.createSpan("graphdb-migration-history-type").setText(typeText)
+			line1.createSpan("graphdb-migration-history-date").setText(` • ${dateStr}`)
+			
+			// Line 2: Statistics (nodes/relationships created/updated, duration)
+			const line2 = summary.createDiv("graphdb-migration-history-line2")
+			const statsParts: string[] = []
+			
+			if (entry.type === "property-sync") {
+				if (entry.nodesCreated !== null && entry.nodesCreated > 0) {
+					statsParts.push(`${entry.nodesCreated} nodes created`)
+				}
+				if (entry.nodesUpdated !== null && entry.nodesUpdated > 0) {
+					statsParts.push(`${entry.nodesUpdated} nodes updated`)
+				}
+			} else if (entry.type === "relationship-sync") {
+				if (entry.relationshipsCreated !== null && entry.relationshipsCreated > 0) {
+					statsParts.push(`${entry.relationshipsCreated} relationships created`)
+				}
+				if (entry.relationshipsUpdated !== null && entry.relationshipsUpdated > 0) {
+					statsParts.push(`${entry.relationshipsUpdated} relationships updated`)
+				}
+			}
+			
+			// Add duration if available
+			if (entry.duration !== null && entry.duration > 0) {
+				statsParts.push(this.formatDuration(entry.duration))
+			}
+			
+			if (statsParts.length > 0) {
+				const statsText = statsParts.join(" • ")
+				line2.createSpan("graphdb-migration-history-stats").setText(statsText)
+			} else {
+				line2.createSpan("graphdb-migration-history-stats").setText("No statistics available")
+			}
+			
+			// Add error count if available (separate span for styling)
+			if (entry.errorCount !== null && entry.errorCount > 0) {
+				const errorText = `${entry.errorCount} error${entry.errorCount === 1 ? "" : "s"}`
+				if (statsParts.length > 0) {
+					line2.createSpan("graphdb-migration-history-stats-separator").setText(" • ")
+				}
+				line2.createSpan("graphdb-migration-history-stats-error").setText(errorText)
+			}
 			
 			// Expand icon
 			const expandIcon = headerEl.createSpan("graphdb-migration-history-expand")
@@ -95,34 +152,11 @@ export class MigrationHistoryModal extends Modal {
 		contentEl.empty()
 	}
 
-	/**
-	 * Gets informative title for sync entry
-	 */
-	private getSyncTitle(entry: SyncHistoryEntry): string {
-		const date = new Date(entry.timestamp)
-		const dateStr = date.toLocaleString()
-		
-		if (entry.type === "property-sync") {
-			const propEntry = entry as PropertySyncHistoryEntry
-			const propsStr = propEntry.properties.length > 0 
-				? propEntry.properties.join(", ")
-				: "No properties"
-			return `Property sync: ${propsStr} • ${dateStr}`
-		} else if (entry.type === "relationship-sync") {
-			const relEntry = entry as RelationshipSyncHistoryEntry
-			const propsStr = relEntry.properties.length > 0
-				? relEntry.properties.join(", ")
-				: "No properties"
-			return `Relationship sync: ${propsStr} • ${dateStr}`
-		}
-		
-		return dateStr
-	}
 
 	/**
 	 * Renders detailed information for a sync entry
 	 */
-	private renderEntryDetails(container: HTMLElement, entry: SyncHistoryEntry): void {
+	private renderEntryDetails(container: HTMLElement, entry: SyncItem): void {
 		if (entry.type === "property-sync") {
 			this.renderPropertySyncDetails(container, entry)
 		} else if (entry.type === "relationship-sync") {
@@ -130,7 +164,7 @@ export class MigrationHistoryModal extends Modal {
 		}
 
 		// Errors (common to both types)
-		if (entry.errors && entry.errors.length > 0) {
+		if ((entry.type === "property-sync" || entry.type === "relationship-sync") && entry.errors && entry.errors.length > 0) {
 			const errorsEl = container.createDiv("graphdb-migration-history-section")
 			errorsEl.createEl("h4", { text: `Errors (${entry.errors.length})` })
 			const errorsList = errorsEl.createDiv("graphdb-migration-history-errors-list")
@@ -138,7 +172,7 @@ export class MigrationHistoryModal extends Modal {
 			// Handle errors based on entry type
 			if (entry.type === "relationship-sync") {
 				// Relationship errors have property and target
-				entry.errors.slice(0, 10).forEach(error => {
+				entry.errors.slice(0, 10).forEach((error: { file: string; property: string; target: string; error: string }) => {
 					const errorItem = errorsList.createDiv("graphdb-migration-history-error-item")
 					errorItem.createSpan("graphdb-migration-history-error-file").setText(error.file)
 					errorItem.createSpan("graphdb-migration-history-error-details").setText(
@@ -147,7 +181,7 @@ export class MigrationHistoryModal extends Modal {
 				})
 			} else {
 				// Property sync errors only have file and error
-				entry.errors.slice(0, 10).forEach(error => {
+				entry.errors.slice(0, 10).forEach((error: { file: string; error: string }) => {
 					const errorItem = errorsList.createDiv("graphdb-migration-history-error-item")
 					errorItem.createSpan("graphdb-migration-history-error-file").setText(error.file)
 					errorItem.createSpan("graphdb-migration-history-error-details").setText(error.error)
@@ -172,12 +206,15 @@ export class MigrationHistoryModal extends Modal {
 	/**
 	 * Renders details for property sync entry
 	 */
-	private renderPropertySyncDetails(container: HTMLElement, entry: PropertySyncHistoryEntry): void {
+	private renderPropertySyncDetails(container: HTMLElement, entry: PropertySyncItem): void {
 		// Properties synced
 		const propsEl = container.createDiv("graphdb-migration-history-section")
 		propsEl.createEl("h4", { text: "Properties synced" })
-		if (entry.properties.length > 0) {
-			propsEl.createSpan().setText(entry.properties.join(", "))
+		const propsArray = entry.properties instanceof Set 
+			? Array.from(entry.properties)
+			: entry.properties
+		if (propsArray.length > 0) {
+			propsEl.createSpan().setText(propsArray.join(", "))
 		} else {
 			propsEl.createSpan().setText("No properties")
 		}
@@ -205,12 +242,15 @@ export class MigrationHistoryModal extends Modal {
 	/**
 	 * Renders details for relationship sync entry
 	 */
-	private renderRelationshipSyncDetails(container: HTMLElement, entry: RelationshipSyncHistoryEntry): void {
+	private renderRelationshipSyncDetails(container: HTMLElement, entry: RelationshipSyncItem): void {
 		// Properties synced
 		const propsEl = container.createDiv("graphdb-migration-history-section")
 		propsEl.createEl("h4", { text: "Properties synced" })
-		if (entry.properties.length > 0) {
-			propsEl.createSpan().setText(entry.properties.join(", "))
+		const propsArray = entry.properties instanceof Set 
+			? Array.from(entry.properties)
+			: entry.properties
+		if (propsArray.length > 0) {
+			propsEl.createSpan().setText(propsArray.join(", "))
 		} else {
 			propsEl.createSpan().setText("No properties")
 		}
@@ -224,17 +264,17 @@ export class MigrationHistoryModal extends Modal {
 			)
 		}
 
-		// Property stats
-		if (entry.propertyStats && Object.keys(entry.propertyStats).length > 0) {
+		// Property counts
+		if (entry.relationshipPropertyCounts && Object.keys(entry.relationshipPropertyCounts).length > 0) {
 			const propStatsEl = container.createDiv("graphdb-migration-history-section")
 			propStatsEl.createEl("h4", { text: "Property statistics" })
 			const propList = propStatsEl.createDiv("graphdb-migration-history-property-list")
 			
-			Object.values(entry.propertyStats).forEach(stat => {
+			Object.entries(entry.relationshipPropertyCounts).forEach(([propertyName, counts]) => {
 				const propItem = propList.createDiv("graphdb-migration-history-property-item")
-				propItem.createSpan("graphdb-migration-history-property-name").setText(stat.propertyName)
+				propItem.createSpan("graphdb-migration-history-property-name").setText(propertyName)
 				propItem.createSpan("graphdb-migration-history-property-stats").setText(
-					`${stat.successCount} success, ${stat.errorCount} errors`
+					`${counts.successCount} success, ${counts.errorCount} errors`
 				)
 			})
 		}

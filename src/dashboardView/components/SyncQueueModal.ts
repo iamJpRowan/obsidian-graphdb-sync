@@ -89,7 +89,7 @@ export class SyncQueueModal extends Modal {
 	 */
 	private renderQueueItem(
 		container: HTMLElement,
-		item: import("../../types").SyncQueueItem,
+		item: import("../../types").SyncItem,
 		isCurrent: boolean
 	): void {
 		// Entry header (matching history modal structure)
@@ -117,10 +117,12 @@ export class SyncQueueModal extends Modal {
 
 		// Properties
 		const propsEl = summary.createSpan("graphdb-migration-history-stats")
-		if (item.properties.size === 0) {
+		const propsArray = item.properties instanceof Set 
+			? Array.from(item.properties)
+			: item.properties
+		if (propsArray.length === 0) {
 			propsEl.setText("No properties")
 		} else {
-			const propsArray = Array.from(item.properties)
 			propsEl.setText(propsArray.join(", "))
 		}
 

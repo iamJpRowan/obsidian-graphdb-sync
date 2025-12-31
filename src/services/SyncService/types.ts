@@ -4,7 +4,7 @@ import type {
 	PluginSettings,
 	NodeCreationError,
 	RelationshipCreationError,
-	PropertyErrorStats,
+	RelationshipPropertyCounts,
 } from "../../types"
 
 /**
@@ -54,6 +54,10 @@ export interface NodeSyncResult {
 	nodeErrors: NodeCreationError[]
 	duration: number
 	message?: string
+	// Neo4j statistics
+	nodesCreated: number
+	nodesUpdated: number
+	propertiesSet: number
 }
 
 /**
@@ -63,6 +67,10 @@ export interface RelationshipSyncResult {
 	successCount: number
 	errorCount: number
 	errors: RelationshipCreationError[]
-	propertyStats: Record<string, PropertyErrorStats>
+	propertyStats: Record<string, RelationshipPropertyCounts>
+	// Neo4j statistics
+	relationshipsCreated: number
+	relationshipsUpdated: number
+	targetNodesCreated: number
 }
 

@@ -32,8 +32,10 @@ export interface PluginSettings {
 	labelRules?: LabelRule[]
 	nodeLabelConfig?: NodeLabelConfig
 	// Sync history (stores sync results)
-	syncHistory?: SyncHistoryEntry[]
+	syncHistory?: SyncItem[]
 	lastAnalysisResult?: VaultAnalysisResult
+	// Batch size for sync operations (number = manual, "auto" = calculated)
+	syncBatchSize?: number | "auto"
 }
 
 export interface Neo4jCredentials {
@@ -50,6 +52,7 @@ export interface NodeLabelConfig {
 export const DEFAULT_SETTINGS: PluginSettings = {
 	neo4jUri: "neo4j://localhost:7687",
 	neo4jUsername: "neo4j",
+	syncBatchSize: "auto",
 }
 
 // Property type detection
@@ -224,9 +227,8 @@ export interface RelationshipCreationError {
 	errorType: ErrorType
 }
 
-// Property error statistics
-export interface PropertyErrorStats {
-	propertyName: string
+// Relationship property counts (success/error counts per front matter property)
+export interface RelationshipPropertyCounts {
 	successCount: number
 	errorCount: number
 	fileErrors: RelationshipCreationError[]
@@ -243,93 +245,141 @@ export interface MigrationResult {
 	phasesExecuted: Array<"nodes" | "relationships">
 	nodeErrors: NodeCreationError[]
 	relationshipErrors: RelationshipCreationError[]
-	propertyStats: Record<string, PropertyErrorStats>
+	propertyStats: Record<string, RelationshipPropertyCounts>
 	relationshipStats: {
 		successCount: number
 		errorCount: number
 	}
+	// Neo4j statistics (optional for backward compatibility)
+	nodesCreated?: number
+	nodesUpdated?: number
+	propertiesSet?: number
+	relationshipsCreated?: number
+	relationshipsUpdated?: number
+	targetNodesCreated?: number
 }
 
 // ============================================
-// Queue Types
+// Unified Sync Item Types
 // ============================================
 
 /**
- * Queue item types
+ * Status of a sync item through its lifecycle
  */
-export type SyncQueueItemType = 
-	| "property-sync"      // Sync node properties
-	| "relationship-sync"  // Sync relationships
+export type SyncItemStatus = 
+	| "queued"           // Waiting in queue
+	| "scanning"         // Scanning files (before Neo4j operations)
+	| "processing"       // Actively syncing to Neo4j
+	| "completed"       // Successfully completed
+	| "cancelled"        // User cancelled
+	| "error"           // Failed with error
 
 /**
- * Individual queue item
+ * Base sync item fields (common to all sync types)
  */
-export interface SyncQueueItem {
+interface BaseSyncItem {
+	// Core identity (always present)
 	id: string
-	type: SyncQueueItemType
-	properties: Set<string> // Set for automatic deduplication
+	properties: Set<string> | string[] // Set when in queue, Array when persisted
+	
+	// Status and lifecycle
+	status: SyncItemStatus
+	
+	// Timing
+	startTime: number | null      // When processing started (null if not started)
+	timestamp: number | null       // When completed/cancelled/errored (null if not finished)
+	
+	// Results (null until status is completed/cancelled/error)
+	success: boolean | null
+	duration: number | null
+	message: string | null
+	
+	// File statistics (null until processing starts)
+	totalFiles: number | null
+	successCount: number | null
+	errorCount: number | null
 }
 
 /**
- * Queue state
+ * Property sync item (node properties only)
  */
-export interface SyncQueueState {
-	queue: SyncQueueItem[]
-	current: SyncQueueItem | null // null = not processing
-}
-
-// ============================================
-// History Entry Types (Discriminated Union)
-// ============================================
-
-/**
- * Base history entry fields
- */
-interface BaseSyncHistoryEntry {
-	id: string
-	timestamp: number
-	success: boolean
-	duration: number
-	message?: string
-}
-
-/**
- * Property sync history entry
- */
-export interface PropertySyncHistoryEntry extends BaseSyncHistoryEntry {
+export interface PropertySyncItem extends BaseSyncItem {
 	type: "property-sync"
-	properties: string[] // Array (converted from Set)
-	totalFiles: number
-	successCount: number
-	errorCount: number
+	
+	// Node statistics from Neo4j (null until completed)
+	nodesCreated: number | null
+	nodesUpdated: number | null
+	propertiesSet: number | null
+	
+	// Errors
 	errors: Array<{ file: string; error: string }>
-	nodeErrors?: NodeCreationError[]
+	nodeErrors: NodeCreationError[]
 }
 
 /**
- * Relationship sync history entry
+ * Relationship sync item
  */
-export interface RelationshipSyncHistoryEntry extends BaseSyncHistoryEntry {
+export interface RelationshipSyncItem extends BaseSyncItem {
 	type: "relationship-sync"
-	properties: string[] // Array (converted from Set)
-	totalFiles: number
-	successCount: number
-	errorCount: number
-	errors: Array<{ file: string; property: string; target: string; error: string }>
-	relationshipErrors?: RelationshipCreationError[]
-	propertyStats?: Record<string, PropertyErrorStats>
-	relationshipStats?: {
+	
+	// Relationship statistics from Neo4j (null until completed)
+	relationshipsCreated: number | null
+	relationshipsUpdated: number | null
+	
+	// Aggregate relationship stats
+	relationshipStats: {
 		successCount: number
 		errorCount: number
-	}
+	} | null
+	
+	// Success/error counts per front matter property
+	// Key = front matter property name (e.g., "tags", "related")
+	// Value = counts of relationships successfully created vs failed from that property
+	relationshipPropertyCounts: Record<string, RelationshipPropertyCounts> | null
+	
+	// Errors
+	errors: Array<{ file: string; property: string; target: string; error: string }>
+	relationshipErrors: RelationshipCreationError[]
 }
 
 /**
- * Discriminated union for sync history entries
+ * Future: File sync item (placeholder for future implementation)
  */
-export type SyncHistoryEntry = 
-	| PropertySyncHistoryEntry
-	| RelationshipSyncHistoryEntry
+export interface FileSyncItem extends BaseSyncItem {
+	type: "file-sync"
+	// Future fields will be added here
+}
+
+/**
+ * Discriminated union of all sync item types
+ */
+export type SyncItem = 
+	| PropertySyncItem
+	| RelationshipSyncItem
+	| FileSyncItem
+
+/**
+ * Queue state using unified SyncItem
+ */
+export interface SyncQueueState {
+	queue: SyncItem[]           // Items with status: "queued"
+	current: SyncItem | null    // Item with status: "scanning" | "processing"
+}
+
+/**
+ * Helper type guards
+ */
+export function isPropertySyncItem(item: SyncItem): item is PropertySyncItem {
+	return item.type === "property-sync"
+}
+
+export function isRelationshipSyncItem(item: SyncItem): item is RelationshipSyncItem {
+	return item.type === "relationship-sync"
+}
+
+export function isFileSyncItem(item: SyncItem): item is FileSyncItem {
+	return item.type === "file-sync"
+}
 
 
 // Node property mapping

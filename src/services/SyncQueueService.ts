@@ -1,10 +1,10 @@
 import type GraphDBSyncPlugin from "../main"
 import type {
-	SyncQueueItem,
-	SyncQueueItemType,
+	SyncItem,
+	PropertySyncItem,
+	RelationshipSyncItem,
 	PluginSettings,
 	Neo4jCredentials,
-	SyncHistoryEntry,
 } from "../types"
 import { StateService } from "./StateService"
 import { syncNodePropertiesOnly, syncRelationshipsOnly } from "./SyncService"
@@ -34,7 +34,7 @@ export class SyncQueueService {
 	 */
 	static addPropertySync(
 		propertyName: string,
-		type: SyncQueueItemType,
+		type: "property-sync" | "relationship-sync",
 		settings: PluginSettings
 	): void {
 		const queueState = StateService.getQueueState()
@@ -45,8 +45,13 @@ export class SyncQueueService {
 		const fullSync = this.findFullSync(queue, type, settings)
 		if (fullSync) {
 			// Full sync exists, add property to it if not already included
-			if (!fullSync.properties.has(propertyName)) {
-				fullSync.properties.add(propertyName)
+			const propsSet = fullSync.properties instanceof Set ? fullSync.properties : new Set(fullSync.properties)
+			if (!propsSet.has(propertyName)) {
+				if (fullSync.properties instanceof Set) {
+					fullSync.properties.add(propertyName)
+				} else {
+					fullSync.properties = new Set([...fullSync.properties, propertyName])
+				}
 				StateService.setQueueState({ queue })
 			}
 			// Property already in full sync or will be covered, skip adding
@@ -60,13 +65,53 @@ export class SyncQueueService {
 
 		if (existing) {
 			// Add property to existing item (Set auto-deduplicates)
-			existing.properties.add(propertyName)
+			if (existing.properties instanceof Set) {
+				existing.properties.add(propertyName)
+			} else {
+				// Convert to Set if it's an array (shouldn't happen in queue, but safety check)
+				const existingSet = new Set(existing.properties)
+				existingSet.add(propertyName)
+				existing.properties = existingSet
+			}
 		} else {
 			// Add new item to end of queue
-			const newItem: SyncQueueItem = {
+			const newItem: SyncItem = type === "property-sync" ? {
 				id: `queue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-				type,
+				type: "property-sync",
 				properties: new Set([propertyName]),
+				status: "queued",
+				startTime: null,
+				timestamp: null,
+				success: null,
+				duration: null,
+				message: null,
+				totalFiles: null,
+				successCount: null,
+				errorCount: null,
+				nodesCreated: null,
+				nodesUpdated: null,
+				propertiesSet: null,
+				errors: [],
+				nodeErrors: [],
+			} : {
+				id: `queue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+				type: "relationship-sync",
+				properties: new Set([propertyName]),
+				status: "queued",
+				startTime: null,
+				timestamp: null,
+				success: null,
+				duration: null,
+				message: null,
+				totalFiles: null,
+				successCount: null,
+				errorCount: null,
+				relationshipsCreated: null,
+				relationshipsUpdated: null,
+				relationshipStats: null,
+				relationshipPropertyCounts: null,
+				errors: [],
+				relationshipErrors: [],
 			}
 			queue.push(newItem)
 		}
@@ -96,27 +141,72 @@ export class SyncQueueService {
 
 		// Add property-sync if not already queued
 		if (!existingPropertySync) {
-			queue.push({
+			const newItem: SyncItem = {
 				id: `queue-${Date.now()}-property`,
 				type: "property-sync",
 				properties: nodePropertyNames,
-			})
-		} else {
-			// Update existing full sync with any newly enabled properties
-			nodePropertyNames.forEach(prop => existingPropertySync.properties.add(prop))
-		}
+				status: "queued",
+				startTime: null,
+				timestamp: null,
+				success: null,
+				duration: null,
+				message: null,
+				totalFiles: null,
+				successCount: null,
+				errorCount: null,
+				nodesCreated: null,
+				nodesUpdated: null,
+				propertiesSet: null,
+				errors: [],
+				nodeErrors: [],
+			}
+			queue.push(newItem)
+			} else {
+				// Update existing full sync with any newly enabled properties
+				if (existingPropertySync.properties instanceof Set) {
+					const propsSet = existingPropertySync.properties
+					nodePropertyNames.forEach(prop => propsSet.add(prop))
+				} else {
+					const existingSet = new Set(existingPropertySync.properties)
+					nodePropertyNames.forEach(prop => existingSet.add(prop))
+					existingPropertySync.properties = existingSet
+				}
+			}
 
 		// Add relationship-sync if not already queued
 		if (!existingRelationshipSync) {
-			queue.push({
+			const newItem: SyncItem = {
 				id: `queue-${Date.now()}-relationship`,
 				type: "relationship-sync",
 				properties: relationshipPropertyNames,
-			})
-		} else {
-			// Update existing full sync with any newly enabled properties
-			relationshipPropertyNames.forEach(prop => existingRelationshipSync.properties.add(prop))
-		}
+				status: "queued",
+				startTime: null,
+				timestamp: null,
+				success: null,
+				duration: null,
+				message: null,
+				totalFiles: null,
+				successCount: null,
+				errorCount: null,
+				relationshipsCreated: null,
+				relationshipsUpdated: null,
+				relationshipStats: null,
+				relationshipPropertyCounts: null,
+				errors: [],
+				relationshipErrors: [],
+			}
+			queue.push(newItem)
+			} else {
+				// Update existing full sync with any newly enabled properties
+				if (existingRelationshipSync.properties instanceof Set) {
+					const propsSet = existingRelationshipSync.properties
+					relationshipPropertyNames.forEach(prop => propsSet.add(prop))
+				} else {
+					const existingSet = new Set(existingRelationshipSync.properties)
+					relationshipPropertyNames.forEach(prop => existingSet.add(prop))
+					existingRelationshipSync.properties = existingSet
+				}
+			}
 
 		StateService.setQueueState({ queue })
 		this.startProcessing(settings)
@@ -127,10 +217,10 @@ export class SyncQueueService {
 	 * Full syncs are identified by having all enabled properties of that type
 	 */
 	private static findFullSync(
-		queue: SyncQueueItem[],
-		type: SyncQueueItemType,
+		queue: SyncItem[],
+		type: "property-sync" | "relationship-sync",
 		settings: PluginSettings
-	): SyncQueueItem | undefined {
+	): SyncItem | undefined {
 		// Get all enabled properties for this type
 		const enabledProperties = type === "property-sync"
 			? ConfigurationService.getEnabledNodePropertyMappings(settings).map(m => m.propertyName)
@@ -142,7 +232,8 @@ export class SyncQueueService {
 				return false
 			}
 			// Check if this item contains all enabled properties (it's a full sync)
-			return enabledProperties.every(prop => item.properties.has(prop))
+			const propsSet = item.properties instanceof Set ? item.properties : new Set(item.properties)
+			return enabledProperties.every(prop => propsSet.has(prop))
 		})
 	}
 
@@ -152,7 +243,7 @@ export class SyncQueueService {
 	 */
 	static addPropertyToActiveFullSync(
 		propertyName: string,
-		type: SyncQueueItemType,
+		type: "property-sync" | "relationship-sync",
 		settings: PluginSettings
 	): void {
 		const queueState = StateService.getQueueState()
@@ -161,17 +252,31 @@ export class SyncQueueService {
 		// Check current item
 		if (queueState.current && queueState.current.type === type) {
 			const fullSync = this.findFullSync([queueState.current], type, settings)
-			if (fullSync && !fullSync.properties.has(propertyName)) {
-				fullSync.properties.add(propertyName)
-				StateService.setQueueState({ current: queueState.current })
+			if (fullSync) {
+				const propsSet = fullSync.properties instanceof Set ? fullSync.properties : new Set(fullSync.properties)
+				if (!propsSet.has(propertyName)) {
+					if (fullSync.properties instanceof Set) {
+						fullSync.properties.add(propertyName)
+					} else {
+						fullSync.properties = new Set([...fullSync.properties, propertyName])
+					}
+					StateService.setQueueState({ current: queueState.current })
+				}
 			}
 		}
 
 		// Check queue items
 		const fullSync = this.findFullSync(queue, type, settings)
-		if (fullSync && !fullSync.properties.has(propertyName)) {
-			fullSync.properties.add(propertyName)
-			StateService.setQueueState({ queue })
+		if (fullSync) {
+			const propsSet = fullSync.properties instanceof Set ? fullSync.properties : new Set(fullSync.properties)
+			if (!propsSet.has(propertyName)) {
+				if (fullSync.properties instanceof Set) {
+					fullSync.properties.add(propertyName)
+				} else {
+					fullSync.properties = new Set([...fullSync.properties, propertyName])
+				}
+				StateService.setQueueState({ queue })
+			}
 		}
 	}
 
@@ -241,9 +346,13 @@ export class SyncQueueService {
 	 * Processes a single queue item
 	 */
 	private static async processItem(
-		item: SyncQueueItem,
+		item: SyncItem,
 		settings: PluginSettings
 	): Promise<void> {
+		// Update status to processing
+		item.status = "processing"
+		item.startTime = Date.now()
+		StateService.setQueueState({ current: item })
 		if (!this.pluginInstance) {
 			throw new Error("Plugin instance not available")
 		}
@@ -265,7 +374,7 @@ export class SyncQueueService {
 		try {
 			if (item.type === "property-sync") {
 				await this.processPropertySync(
-					item,
+					item as PropertySyncItem,
 					vaultPath,
 					uri,
 					{ username, password },
@@ -274,7 +383,7 @@ export class SyncQueueService {
 				)
 			} else if (item.type === "relationship-sync") {
 				await this.processRelationshipSync(
-					item,
+					item as RelationshipSyncItem,
 					vaultPath,
 					uri,
 					{ username, password },
@@ -283,44 +392,24 @@ export class SyncQueueService {
 				)
 			}
 		} catch (error) {
-			// Create error history entry
+			// Update item with error state
 			const errorMessage =
 				error instanceof Error ? error.message : String(error)
 			const duration = Date.now() - startTime
 
-			if (item.type === "property-sync") {
-				await this.saveHistoryEntry({
-					type: "property-sync",
-					id: `sync-${Date.now()}`,
-					timestamp: Date.now(),
-					success: false,
-					duration,
-					message: `Property sync failed: ${errorMessage}`,
-					properties: Array.from(item.properties),
-					totalFiles: 0,
-					successCount: 0,
-					errorCount: 0,
-					errors: [],
-				})
-			} else {
-				await this.saveHistoryEntry({
-					type: "relationship-sync",
-					id: `sync-${Date.now()}`,
-					timestamp: Date.now(),
-					success: false,
-					duration,
-					message: `Relationship sync failed: ${errorMessage}`,
-					properties: Array.from(item.properties),
-					totalFiles: 0,
-					successCount: 0,
-					errorCount: 0,
-					errors: [],
-					relationshipStats: {
-						successCount: 0,
-						errorCount: 0,
-					},
-				})
-			}
+			item.status = "error"
+			item.timestamp = Date.now()
+			item.success = false
+			item.duration = duration
+			item.message = item.type === "property-sync" 
+				? `Property sync failed: ${errorMessage}`
+				: `Relationship sync failed: ${errorMessage}`
+			item.totalFiles = 0
+			item.successCount = 0
+			item.errorCount = 0
+
+			// Convert properties to array and move to history
+			await this.moveToHistory(item)
 
 			throw error
 		}
@@ -330,7 +419,7 @@ export class SyncQueueService {
 	 * Processes a property-sync item
 	 */
 	private static async processPropertySync(
-		item: SyncQueueItem,
+		item: PropertySyncItem,
 		vaultPath: string,
 		uri: string,
 		credentials: Neo4jCredentials,
@@ -338,7 +427,9 @@ export class SyncQueueService {
 		settings: PluginSettings
 	): Promise<void> {
 		// Convert Set to array for SyncService
-		const properties = Array.from(item.properties)
+		const properties = item.properties instanceof Set 
+			? Array.from(item.properties)
+			: item.properties
 
 		// Create sync context
 		const context: SyncContext = {
@@ -357,31 +448,45 @@ export class SyncQueueService {
 			nodePropertyFilter: properties,
 		})
 
-		// Create history entry
-		await this.saveHistoryEntry({
-			type: "property-sync",
-			id: `sync-${Date.now()}`,
-			timestamp: Date.now(),
-			success: result.success,
-			duration: result.duration,
-			message: result.message || "Property sync completed",
-			properties,
-			totalFiles: result.totalFiles,
-			successCount: result.successCount,
-			errorCount: result.errorCount,
-			errors: result.nodeErrors.map((e) => ({
-				file: e.file,
-				error: e.error,
-			})),
-			nodeErrors: result.nodeErrors,
-		})
+		// Update item with results
+		// Check if sync was cancelled (check if SyncInfrastructure was cancelled)
+		const { SyncInfrastructure } = await import("./SyncService/infrastructure")
+		const isCancelled = SyncInfrastructure.isCancelled() ||
+			result.message?.toLowerCase().includes("cancelled") ||
+			(!result.success && result.message?.toLowerCase().includes("cancel"))
+		
+		if (isCancelled) {
+			item.status = "cancelled"
+			item.message = "Cancelled"
+		} else {
+			item.status = "completed"
+			item.message = result.message || "Property sync completed"
+		}
+		
+		item.timestamp = Date.now()
+		item.success = result.success
+		item.duration = result.duration
+		item.totalFiles = result.totalFiles
+		item.successCount = result.successCount
+		item.errorCount = result.errorCount
+		item.nodesCreated = result.nodesCreated ?? null
+		item.nodesUpdated = result.nodesUpdated ?? null
+		item.propertiesSet = result.propertiesSet ?? null
+		item.errors = result.nodeErrors.map((e) => ({
+			file: e.file,
+			error: e.error,
+		}))
+		item.nodeErrors = result.nodeErrors
+
+		// Convert properties to array and move to history
+		await this.moveToHistory(item)
 	}
 
 	/**
 	 * Processes a relationship-sync item
 	 */
 	private static async processRelationshipSync(
-		item: SyncQueueItem,
+		item: RelationshipSyncItem,
 		vaultPath: string,
 		uri: string,
 		credentials: Neo4jCredentials,
@@ -389,7 +494,9 @@ export class SyncQueueService {
 		settings: PluginSettings
 	): Promise<void> {
 		// Convert Set to array for SyncService
-		const properties = Array.from(item.properties)
+		const properties = item.properties instanceof Set
+			? Array.from(item.properties)
+			: item.properties
 
 		// Create sync context
 		const context: SyncContext = {
@@ -408,37 +515,53 @@ export class SyncQueueService {
 			relationshipPropertyFilter: properties,
 		})
 
-		// Create history entry
-		this.saveHistoryEntry({
-			type: "relationship-sync",
-			id: `sync-${Date.now()}`,
-			timestamp: Date.now(),
-			success: result.success,
-			duration: result.duration,
-			message: result.message || "Relationship sync completed",
-			properties,
-			totalFiles: result.totalFiles,
-			successCount: result.successCount,
-			errorCount: result.errorCount,
-			errors: result.relationshipErrors.map((e) => ({
-				file: e.file,
-				property: e.property,
-				target: e.target,
-				error: e.error,
-			})),
-			relationshipErrors: result.relationshipErrors,
-			propertyStats: result.propertyStats,
-			relationshipStats: result.relationshipStats,
-		})
+		// Update item with results
+		// Check if sync was cancelled (check if SyncInfrastructure was cancelled)
+		const { SyncInfrastructure } = await import("./SyncService/infrastructure")
+		const isCancelled = SyncInfrastructure.isCancelled()
+		
+		if (isCancelled) {
+			item.status = "cancelled"
+			item.message = "Cancelled"
+		} else {
+			item.status = "completed"
+			item.message = result.message || "Relationship sync completed"
+		}
+		
+		item.timestamp = Date.now()
+		item.success = result.success
+		item.duration = result.duration
+		item.totalFiles = result.totalFiles
+		item.successCount = result.successCount
+		item.errorCount = result.errorCount
+		item.relationshipsCreated = result.relationshipsCreated ?? null
+		item.relationshipsUpdated = result.relationshipsUpdated ?? null
+		item.relationshipStats = result.relationshipStats
+		item.relationshipPropertyCounts = result.propertyStats || null
+		item.errors = result.relationshipErrors.map((e) => ({
+			file: e.file,
+			property: e.property,
+			target: e.target,
+			error: e.error,
+		}))
+		item.relationshipErrors = result.relationshipErrors
+
+		// Convert properties to array and move to history
+		await this.moveToHistory(item)
 	}
 
 	/**
-	 * Saves history entry to plugin settings
+	 * Moves completed item to history
 	 */
-	private static async saveHistoryEntry(entry: SyncHistoryEntry): Promise<void> {
+	private static async moveToHistory(item: SyncItem): Promise<void> {
 		if (!this.pluginInstance) {
 			console.error("Plugin instance not available, cannot save history")
 			return
+		}
+
+		// Convert properties Set to Array for persistence
+		if (item.properties instanceof Set) {
+			item.properties = Array.from(item.properties)
 		}
 
 		// Initialize history array if it doesn't exist
@@ -447,7 +570,7 @@ export class SyncQueueService {
 		}
 
 		// Add to history (most recent first)
-		this.pluginInstance.settings.syncHistory.unshift(entry)
+		this.pluginInstance.settings.syncHistory.unshift(item)
 
 		// Limit history size (keep last 50)
 		const MAX_HISTORY = 50
@@ -455,6 +578,9 @@ export class SyncQueueService {
 			this.pluginInstance.settings.syncHistory =
 				this.pluginInstance.settings.syncHistory.slice(0, MAX_HISTORY)
 		}
+
+		// Clear current item from queue state
+		StateService.setQueueState({ current: null })
 
 		await this.pluginInstance.saveSettings()
 	}

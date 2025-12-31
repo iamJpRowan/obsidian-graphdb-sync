@@ -193,6 +193,33 @@
 	color: var(--text-error);
 }
 
+.graphdb-migration-status-last-result {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.graphdb-migration-status-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+}
+
+.graphdb-migration-status-icon.success {
+	color: var(--text-success);
+}
+
+.graphdb-migration-status-icon.cancelled {
+	color: var(--text-muted);
+}
+
+.graphdb-migration-status-icon.error {
+	color: var(--text-error);
+}
+
 /* Progress bar container */
 .graphdb-migration-progress-bar-container {
 	flex: 1;
@@ -327,13 +354,19 @@
 	background-color: var(--background-modifier-active);
 }
 
+.graphdb-migration-history-status-container {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+}
+
 .graphdb-migration-history-status-icon {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 24px;
-	height: 24px;
-	font-weight: 600;
+	width: 20px;
+	height: 20px;
 	flex-shrink: 0;
 }
 
@@ -341,8 +374,18 @@
 	color: var(--text-success);
 }
 
+.graphdb-migration-history-status-icon.cancelled {
+	color: var(--text-muted);
+}
+
 .graphdb-migration-history-status-icon.error {
 	color: var(--text-error);
+}
+
+.graphdb-migration-history-status-text {
+	font-size: 0.9em;
+	font-weight: 500;
+	color: var(--text-normal);
 }
 
 .graphdb-migration-history-summary {
@@ -353,15 +396,44 @@
 	min-width: 0;
 }
 
-.graphdb-migration-history-date {
+.graphdb-migration-history-line1 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.graphdb-migration-history-type {
 	font-size: 0.9em;
 	font-weight: 500;
 	color: var(--text-normal);
 }
 
+.graphdb-migration-history-date {
+	font-size: 0.9em;
+	color: var(--text-muted);
+}
+
+.graphdb-migration-history-line2 {
+	display: flex;
+	align-items: center;
+	gap: 0;
+}
+
 .graphdb-migration-history-stats {
 	font-size: 0.85em;
 	color: var(--text-muted);
+}
+
+.graphdb-migration-history-stats-separator {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	margin: 0 4px;
+}
+
+.graphdb-migration-history-stats-error {
+	font-size: 0.85em;
+	color: var(--text-error);
 }
 
 .graphdb-migration-history-expand {

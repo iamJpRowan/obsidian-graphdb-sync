@@ -18,6 +18,7 @@ export class SyncPanel {
 	private container: HTMLElement
 	private statusBarLine: HTMLElement | null = null
 	private actionLine: HTMLElement | null = null
+	private statusTextContainer: HTMLElement | null = null
 	private unsubscribeState: (() => void) | null = null
 	private lastMigrationState: MigrationState | null = null
 	private lastQueueState: SyncQueueState | null = null
@@ -106,8 +107,15 @@ export class SyncPanel {
 			}
 		}
 
-		// Always render action line
-		this.renderActionLine(migrationState)
+		// Initialize action line structure once (if not already initialized)
+		if (!this.statusTextContainer) {
+			this.initializeActionLine()
+		}
+
+		// Update status text (frequent updates during sync)
+		if (this.statusTextContainer) {
+			this.updateStatusText(migrationState)
+		}
 
 		// Store current state for next comparison
 		this.lastMigrationState = { ...migrationState }
@@ -242,18 +250,17 @@ export class SyncPanel {
 	}
 
 	/**
-	 * Renders the action line with status text, history link, and run sync button
+	 * Initializes the action line structure once (buttons/links that don't change)
 	 */
-	private renderActionLine(migrationState: MigrationState): void {
+	private initializeActionLine(): void {
 		if (!this.actionLine) return
 
 		this.actionLine.empty()
 
-		// Status text container
-		const statusTextContainer = this.actionLine.createDiv("graphdb-migration-status-text-container")
-		this.renderStatusText(statusTextContainer, migrationState)
+		// Status text container (will be updated frequently)
+		this.statusTextContainer = this.actionLine.createDiv("graphdb-migration-status-text-container")
 
-		// View History link (if history exists)
+		// View History link (if history exists - created once, never updated)
 		const history = this.plugin.settings.syncHistory
 		if (history && history.length > 0) {
 			this.createClickableElement(
@@ -266,7 +273,7 @@ export class SyncPanel {
 			)
 		}
 
-		// Run sync button
+		// Run sync button (created once, never updated)
 		this.createIconButton(
 			this.actionLine,
 			"database-backup",
@@ -276,6 +283,14 @@ export class SyncPanel {
 				this.startFullSync()
 			}
 		)
+	}
+
+	/**
+	 * Updates only the status text (called frequently during sync)
+	 */
+	private updateStatusText(migrationState: MigrationState): void {
+		if (!this.statusTextContainer) return
+		this.renderStatusText(this.statusTextContainer, migrationState)
 	}
 
 	/**
@@ -299,12 +314,29 @@ export class SyncPanel {
 		const lastResult = history && history.length > 0 ? history[0] : null
 
 		if (lastResult) {
-			const statusText = lastResult.success
-				? `✓ Last: ${lastResult.successCount}/${lastResult.totalFiles} files`
-				: `✗ ${lastResult.errorCount} errors`
-			const statusEl = container.createSpan("graphdb-migration-status-text")
-			statusEl.setText(statusText)
-			statusEl.addClass(lastResult.success ? "graphdb-migration-status-success" : "graphdb-migration-status-error")
+			// Use same format as history panel first line
+			const statusContainer = container.createDiv("graphdb-migration-status-last-result")
+			
+			// Status icon
+			const statusIcon = statusContainer.createSpan("graphdb-migration-status-icon")
+			if (lastResult.status === "completed") {
+				setIcon(statusIcon, "check")
+				statusIcon.addClass("success")
+			} else if (lastResult.status === "cancelled") {
+				setIcon(statusIcon, "x")
+				statusIcon.addClass("cancelled")
+			} else if (lastResult.status === "error") {
+				setIcon(statusIcon, "alert-circle")
+				statusIcon.addClass("error")
+			}
+			
+			// Type and date
+			const typeText = lastResult.type === "property-sync" ? "Property sync" : "Relationship sync"
+			const dateStr = lastResult.timestamp !== null 
+				? new Date(lastResult.timestamp).toLocaleString()
+				: "No timestamp"
+			const statusText = statusContainer.createSpan("graphdb-migration-status-text")
+			statusText.setText(`${typeText} • ${dateStr}`)
 		}
 	}
 

@@ -1,5 +1,5 @@
 import type { Driver, Session } from "neo4j-driver"
-import type { MigrationResult, PropertyErrorStats } from "../../types"
+import type { MigrationResult, RelationshipPropertyCounts } from "../../types"
 import { ConfigurationService } from "../ConfigurationService"
 import { SyncInfrastructure } from "./infrastructure"
 import { syncNodeProperties } from "./operations/nodeSync"
@@ -60,7 +60,7 @@ export async function syncNodePropertiesOnly(context: SyncContext, options?: Syn
 		session = connection.session
 
 		// Initialize property stats (empty for node-only sync)
-		const propertyStats: Record<string, PropertyErrorStats> = {}
+		const propertyStats: Record<string, RelationshipPropertyCounts> = {}
 
 		// Sync node properties
 		const nodeResult = await syncNodeProperties(
@@ -92,6 +92,9 @@ export async function syncNodePropertiesOnly(context: SyncContext, options?: Syn
 				successCount: 0,
 				errorCount: 0,
 			},
+			nodesCreated: nodeResult.nodesCreated,
+			nodesUpdated: nodeResult.nodesUpdated,
+			propertiesSet: nodeResult.propertiesSet,
 		}
 	} catch (error) {
 		// Cleanup on error
@@ -156,7 +159,7 @@ export async function syncRelationshipsOnly(context: SyncContext, options?: Sync
 		session = connection.session
 
 		// Initialize property stats for enabled properties (filtered if relationshipPropertyFilter provided)
-		const propertyStats: Record<string, PropertyErrorStats> = {}
+		const propertyStats: Record<string, RelationshipPropertyCounts> = {}
 		let enabledMappings = ConfigurationService.getEnabledRelationshipMappings(context.settings)
 		if (options?.relationshipPropertyFilter && options.relationshipPropertyFilter.length > 0) {
 			enabledMappings = enabledMappings.filter(mapping =>
@@ -165,7 +168,6 @@ export async function syncRelationshipsOnly(context: SyncContext, options?: Sync
 		}
 		for (const mapping of enabledMappings) {
 			propertyStats[mapping.propertyName] = {
-				propertyName: mapping.propertyName,
 				successCount: 0,
 				errorCount: 0,
 				fileErrors: [],
@@ -217,6 +219,9 @@ export async function syncRelationshipsOnly(context: SyncContext, options?: Sync
 				successCount: relResult.successCount,
 				errorCount: relResult.errorCount,
 			},
+			relationshipsCreated: relResult.relationshipsCreated,
+			relationshipsUpdated: relResult.relationshipsUpdated,
+			targetNodesCreated: relResult.targetNodesCreated,
 		}
 	} catch (error) {
 		// Cleanup on error
@@ -281,7 +286,7 @@ export async function syncAll(context: SyncContext, options?: SyncOptions): Prom
 		session = connection.session
 
 		// Initialize property stats for enabled properties (filtered if relationshipPropertyFilter provided)
-		const propertyStats: Record<string, PropertyErrorStats> = {}
+		const propertyStats: Record<string, RelationshipPropertyCounts> = {}
 		let enabledMappings = ConfigurationService.getEnabledRelationshipMappings(context.settings)
 		if (options?.relationshipPropertyFilter && options.relationshipPropertyFilter.length > 0) {
 			enabledMappings = enabledMappings.filter(mapping =>
@@ -290,7 +295,6 @@ export async function syncAll(context: SyncContext, options?: SyncOptions): Prom
 		}
 		for (const mapping of enabledMappings) {
 			propertyStats[mapping.propertyName] = {
-				propertyName: mapping.propertyName,
 				successCount: 0,
 				errorCount: 0,
 				fileErrors: [],
@@ -311,9 +315,10 @@ export async function syncAll(context: SyncContext, options?: SyncOptions): Prom
 		// Phase 2: Sync relationships (if not cancelled)
 		let relationshipStats = { successCount: 0, errorCount: 0 }
 		const relationshipErrors: import("../../types").RelationshipCreationError[] = []
+		let relResult: import("./types").RelationshipSyncResult | null = null
 
 		if (!SyncInfrastructure.isCancelled()) {
-			const relResult = await syncRelationships(
+			relResult = await syncRelationships(
 				session,
 				context.vaultPath,
 				files,
@@ -348,6 +353,12 @@ export async function syncAll(context: SyncContext, options?: SyncOptions): Prom
 			relationshipErrors,
 			propertyStats,
 			relationshipStats,
+			nodesCreated: nodeResult.nodesCreated,
+			nodesUpdated: nodeResult.nodesUpdated,
+			propertiesSet: nodeResult.propertiesSet,
+			relationshipsCreated: relResult?.relationshipsCreated,
+			relationshipsUpdated: relResult?.relationshipsUpdated,
+			targetNodesCreated: relResult?.targetNodesCreated,
 		}
 	} catch (error) {
 		// Cleanup on error

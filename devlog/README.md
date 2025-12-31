@@ -4,6 +4,12 @@ This directory contains historical development decisions, architectural consider
 
 ## Entries
 
+- [2026-01-01 - Sync Type Consolidation and Performance Optimization](./2026-01-01-sync-type-consolidation-and-performance-optimization.md)
+  - Unified SyncItem type system (queue + history)
+  - Neo4j statistics integration
+  - Configurable batch sizing
+  - UNWIND batching for performance (5-10x speedup)
+
 - [2025-12-31 - Queue-Based Sync System: Phase-Based Architecture](./2025-12-31-queue-based-sync-system.md)
   - Queue-based sync architecture
   - Phase-based sync types (property-sync, relationship-sync, file-sync)
