@@ -98,11 +98,11 @@ export class PropertySyncHandler {
 
 		// Check if there's a full sync (contains all enabled properties)
 		const isFullSync = (item: import("../../../types").SyncQueueItem): boolean => {
-			if (item.type !== syncType || !item.properties) {
+			if (item.type !== syncType) {
 				return false
 			}
 			// Check if this item contains all enabled properties
-			return enabledProperties.every(prop => item.properties!.has(prop))
+			return enabledProperties.every(prop => item.properties.has(prop))
 		}
 
 		// Check if this property is in a full sync
@@ -110,7 +110,7 @@ export class PropertySyncHandler {
 
 		// Check if this property is in the queue (specific or full sync)
 		const isQueued = queueState.queue.some((item) => {
-			if (item.type === syncType && item.properties) {
+			if (item.type === syncType) {
 				return item.properties.has(this.propertyName) || isFullSync(item)
 			}
 			return false
@@ -120,7 +120,6 @@ export class PropertySyncHandler {
 		const isProcessing =
 			queueState.current !== null &&
 			queueState.current.type === syncType &&
-			queueState.current.properties !== undefined &&
 			(queueState.current.properties.has(this.propertyName) || isFullSync(queueState.current))
 
 		if (isProcessing) {

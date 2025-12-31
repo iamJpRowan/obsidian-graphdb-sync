@@ -267,7 +267,7 @@ export type SyncQueueItemType =
 export interface SyncQueueItem {
 	id: string
 	type: SyncQueueItemType
-	properties?: Set<string> // Set for automatic deduplication, undefined = all
+	properties: Set<string> // Set for automatic deduplication
 }
 
 /**
@@ -298,7 +298,7 @@ interface BaseSyncHistoryEntry {
  */
 export interface PropertySyncHistoryEntry extends BaseSyncHistoryEntry {
 	type: "property-sync"
-	properties?: string[] // Array (converted from Set) - undefined = all
+	properties: string[] // Array (converted from Set)
 	totalFiles: number
 	successCount: number
 	errorCount: number
@@ -311,7 +311,7 @@ export interface PropertySyncHistoryEntry extends BaseSyncHistoryEntry {
  */
 export interface RelationshipSyncHistoryEntry extends BaseSyncHistoryEntry {
 	type: "relationship-sync"
-	properties?: string[] // Array (converted from Set) - undefined = all
+	properties: string[] // Array (converted from Set)
 	totalFiles: number
 	successCount: number
 	errorCount: number

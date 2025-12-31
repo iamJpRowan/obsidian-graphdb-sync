@@ -104,20 +104,16 @@ export class MigrationHistoryModal extends Modal {
 		
 		if (entry.type === "property-sync") {
 			const propEntry = entry as PropertySyncHistoryEntry
-			if (propEntry.properties && propEntry.properties.length > 0) {
-				const propsStr = propEntry.properties.join(", ")
-				return `Property sync: ${propsStr} • ${dateStr}`
-			} else {
-				return `Property sync: All properties • ${dateStr}`
-			}
+			const propsStr = propEntry.properties.length > 0 
+				? propEntry.properties.join(", ")
+				: "No properties"
+			return `Property sync: ${propsStr} • ${dateStr}`
 		} else if (entry.type === "relationship-sync") {
 			const relEntry = entry as RelationshipSyncHistoryEntry
-			if (relEntry.properties && relEntry.properties.length > 0) {
-				const propsStr = relEntry.properties.join(", ")
-				return `Relationship sync: ${propsStr} • ${dateStr}`
-			} else {
-				return `Relationship sync: All properties • ${dateStr}`
-			}
+			const propsStr = relEntry.properties.length > 0
+				? relEntry.properties.join(", ")
+				: "No properties"
+			return `Relationship sync: ${propsStr} • ${dateStr}`
 		}
 		
 		return dateStr
@@ -178,14 +174,12 @@ export class MigrationHistoryModal extends Modal {
 	 */
 	private renderPropertySyncDetails(container: HTMLElement, entry: PropertySyncHistoryEntry): void {
 		// Properties synced
-		if (entry.properties && entry.properties.length > 0) {
-			const propsEl = container.createDiv("graphdb-migration-history-section")
-			propsEl.createEl("h4", { text: "Properties synced" })
+		const propsEl = container.createDiv("graphdb-migration-history-section")
+		propsEl.createEl("h4", { text: "Properties synced" })
+		if (entry.properties.length > 0) {
 			propsEl.createSpan().setText(entry.properties.join(", "))
 		} else {
-			const propsEl = container.createDiv("graphdb-migration-history-section")
-			propsEl.createEl("h4", { text: "Properties synced" })
-			propsEl.createSpan().setText("All properties")
+			propsEl.createSpan().setText("No properties")
 		}
 
 		// Node errors (if available)
@@ -213,14 +207,12 @@ export class MigrationHistoryModal extends Modal {
 	 */
 	private renderRelationshipSyncDetails(container: HTMLElement, entry: RelationshipSyncHistoryEntry): void {
 		// Properties synced
-		if (entry.properties && entry.properties.length > 0) {
-			const propsEl = container.createDiv("graphdb-migration-history-section")
-			propsEl.createEl("h4", { text: "Properties synced" })
+		const propsEl = container.createDiv("graphdb-migration-history-section")
+		propsEl.createEl("h4", { text: "Properties synced" })
+		if (entry.properties.length > 0) {
 			propsEl.createSpan().setText(entry.properties.join(", "))
 		} else {
-			const propsEl = container.createDiv("graphdb-migration-history-section")
-			propsEl.createEl("h4", { text: "Properties synced" })
-			propsEl.createSpan().setText("All properties")
+			propsEl.createSpan().setText("No properties")
 		}
 
 		// Relationship stats

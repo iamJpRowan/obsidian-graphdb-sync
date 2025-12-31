@@ -117,10 +117,8 @@ export class SyncQueueModal extends Modal {
 
 		// Properties
 		const propsEl = summary.createSpan("graphdb-migration-history-stats")
-		if (item.properties === undefined) {
-			propsEl.setText("All properties")
-		} else if (item.properties.size === 0) {
-			propsEl.setText("All properties")
+		if (item.properties.size === 0) {
+			propsEl.setText("No properties")
 		} else {
 			const propsArray = Array.from(item.properties)
 			propsEl.setText(propsArray.join(", "))

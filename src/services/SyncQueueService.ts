@@ -45,7 +45,7 @@ export class SyncQueueService {
 		const fullSync = this.findFullSync(queue, type, settings)
 		if (fullSync) {
 			// Full sync exists, add property to it if not already included
-			if (fullSync.properties && !fullSync.properties.has(propertyName)) {
+			if (!fullSync.properties.has(propertyName)) {
 				fullSync.properties.add(propertyName)
 				StateService.setQueueState({ queue })
 			}
@@ -55,10 +55,10 @@ export class SyncQueueService {
 
 		// Find existing partial sync item of same type
 		const existing = queue.find(
-			(item) => item.type === type && item.properties !== undefined
+			(item) => item.type === type
 		)
 
-		if (existing && existing.properties) {
+		if (existing) {
 			// Add property to existing item (Set auto-deduplicates)
 			existing.properties.add(propertyName)
 		} else {
@@ -103,9 +103,7 @@ export class SyncQueueService {
 			})
 		} else {
 			// Update existing full sync with any newly enabled properties
-			if (existingPropertySync.properties) {
-				nodePropertyNames.forEach(prop => existingPropertySync.properties!.add(prop))
-			}
+			nodePropertyNames.forEach(prop => existingPropertySync.properties.add(prop))
 		}
 
 		// Add relationship-sync if not already queued
@@ -117,9 +115,7 @@ export class SyncQueueService {
 			})
 		} else {
 			// Update existing full sync with any newly enabled properties
-			if (existingRelationshipSync.properties) {
-				relationshipPropertyNames.forEach(prop => existingRelationshipSync.properties!.add(prop))
-			}
+			relationshipPropertyNames.forEach(prop => existingRelationshipSync.properties.add(prop))
 		}
 
 		StateService.setQueueState({ queue })
@@ -142,11 +138,11 @@ export class SyncQueueService {
 
 		// Find queue item that contains all enabled properties (or more)
 		return queue.find((item) => {
-			if (item.type !== type || !item.properties) {
+			if (item.type !== type) {
 				return false
 			}
 			// Check if this item contains all enabled properties (it's a full sync)
-			return enabledProperties.every(prop => item.properties!.has(prop))
+			return enabledProperties.every(prop => item.properties.has(prop))
 		})
 	}
 
@@ -165,7 +161,7 @@ export class SyncQueueService {
 		// Check current item
 		if (queueState.current && queueState.current.type === type) {
 			const fullSync = this.findFullSync([queueState.current], type, settings)
-			if (fullSync && fullSync.properties && !fullSync.properties.has(propertyName)) {
+			if (fullSync && !fullSync.properties.has(propertyName)) {
 				fullSync.properties.add(propertyName)
 				StateService.setQueueState({ current: queueState.current })
 			}
@@ -173,7 +169,7 @@ export class SyncQueueService {
 
 		// Check queue items
 		const fullSync = this.findFullSync(queue, type, settings)
-		if (fullSync && fullSync.properties && !fullSync.properties.has(propertyName)) {
+		if (fullSync && !fullSync.properties.has(propertyName)) {
 			fullSync.properties.add(propertyName)
 			StateService.setQueueState({ queue })
 		}
@@ -300,9 +296,7 @@ export class SyncQueueService {
 					success: false,
 					duration,
 					message: `Property sync failed: ${errorMessage}`,
-					properties: item.properties
-						? Array.from(item.properties)
-						: undefined,
+					properties: Array.from(item.properties),
 					totalFiles: 0,
 					successCount: 0,
 					errorCount: 0,
@@ -316,9 +310,7 @@ export class SyncQueueService {
 					success: false,
 					duration,
 					message: `Relationship sync failed: ${errorMessage}`,
-					properties: item.properties
-						? Array.from(item.properties)
-						: undefined,
+					properties: Array.from(item.properties),
 					totalFiles: 0,
 					successCount: 0,
 					errorCount: 0,
@@ -346,7 +338,7 @@ export class SyncQueueService {
 		settings: PluginSettings
 	): Promise<void> {
 		// Convert Set to array for SyncService
-		const properties = item.properties ? Array.from(item.properties) : undefined
+		const properties = Array.from(item.properties)
 
 		// Create sync context
 		const context: SyncContext = {
@@ -372,7 +364,7 @@ export class SyncQueueService {
 			timestamp: Date.now(),
 			success: result.success,
 			duration: result.duration,
-			message: result.message || (properties && properties.length > 0 ? "Property sync completed" : "Full property sync completed"),
+			message: result.message || "Property sync completed",
 			properties,
 			totalFiles: result.totalFiles,
 			successCount: result.successCount,
@@ -397,7 +389,7 @@ export class SyncQueueService {
 		settings: PluginSettings
 	): Promise<void> {
 		// Convert Set to array for SyncService
-		const properties = item.properties ? Array.from(item.properties) : undefined
+		const properties = Array.from(item.properties)
 
 		// Create sync context
 		const context: SyncContext = {
