@@ -75,6 +75,42 @@ export class SettingsTabContent {
 		// Sync settings
 		this.container.createEl("h2", { text: "Sync settings" })
 
+		// File contents setting
+		new Setting(this.container)
+			.setName("Include file contents")
+			.setDesc("Include the full file contents as a property on nodes")
+			.addToggle((toggle) => {
+				toggle.setValue(
+					this.plugin.settings.includeFileContents ?? DEFAULT_SETTINGS.includeFileContents ?? false
+				)
+				toggle.onChange(async (value) => {
+					this.plugin.settings.includeFileContents = value
+					await this.plugin.saveSettings()
+					this.onSettingsChange?.()
+					// Refresh to show/hide property name input
+					this.render()
+				})
+			})
+
+		// File contents property name (only show if enabled)
+		const includeFileContents = this.plugin.settings.includeFileContents ?? DEFAULT_SETTINGS.includeFileContents ?? false
+		if (includeFileContents) {
+			new Setting(this.container)
+				.setName("File contents property name")
+				.setDesc("Property name to use for file contents in Neo4j")
+				.addText((text) => {
+					text.setPlaceholder("file_contents")
+					text.setValue(
+						this.plugin.settings.fileContentsPropertyName ?? DEFAULT_SETTINGS.fileContentsPropertyName ?? "file_contents"
+					)
+					text.onChange(async (value) => {
+						this.plugin.settings.fileContentsPropertyName = value || DEFAULT_SETTINGS.fileContentsPropertyName
+						await this.plugin.saveSettings()
+						this.onSettingsChange?.()
+					})
+				})
+		}
+
 		// Batch size setting
 		const batchSizeSetting = new Setting(this.container)
 			.setName("Sync batch size")

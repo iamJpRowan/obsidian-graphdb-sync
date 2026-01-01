@@ -46,6 +46,9 @@ export async function syncNodeProperties(
 
 	// Pre-process files: extract front matter and build property data
 	const processedFiles: ProcessedFileData[] = []
+	const includeFileContents = settings.includeFileContents ?? false
+	const fileContentsPropertyName = settings.fileContentsPropertyName ?? "file_contents"
+	
 	for (const filePath of files) {
 		try {
 			const relativePath = normalizePath(filePath, vaultPath)
@@ -55,6 +58,17 @@ export async function syncNodeProperties(
 
 			const setProperties: Record<string, unknown> = {
 				name: fileName,
+			}
+
+			// Include file contents if enabled
+			if (includeFileContents && file) {
+				try {
+					const fileContents = await app.vault.read(file)
+					setProperties[fileContentsPropertyName] = fileContents
+				} catch (readError) {
+					// If file read fails, continue without contents
+					// Don't fail the entire sync for this
+				}
 			}
 
 			// Process each enabled node property mapping
@@ -173,7 +187,7 @@ export async function syncNodeProperties(
 				const result = await tx.run(
 					`
 					UNWIND $batch AS item
-					MERGE (n:Note {path: item.path})
+					MERGE (n {path: item.path})
 					SET n.name = item.name
 					SET n += item.properties
 					`,

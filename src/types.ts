@@ -36,6 +36,9 @@ export interface PluginSettings {
 	lastAnalysisResult?: VaultAnalysisResult
 	// Batch size for sync operations (number = manual, "auto" = calculated)
 	syncBatchSize?: number | "auto"
+	// File contents option
+	includeFileContents?: boolean
+	fileContentsPropertyName?: string
 }
 
 export interface Neo4jCredentials {
@@ -53,6 +56,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	neo4jUri: "neo4j://localhost:7687",
 	neo4jUsername: "neo4j",
 	syncBatchSize: "auto",
+	includeFileContents: false,
+	fileContentsPropertyName: "file_contents",
 }
 
 // Property type detection

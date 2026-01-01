@@ -187,7 +187,7 @@ export async function syncRelationships(
 					const targetResult = await tx.run(
 						`
 						UNWIND $batch AS item
-						MERGE (target:Note {path: item.targetPath})
+						MERGE (target {path: item.targetPath})
 						ON CREATE SET target.name = item.targetName
 						`,
 						{ batch: targetBatchData }
@@ -239,7 +239,7 @@ export async function syncRelationships(
 					const sourceCheckResult = await tx.run(
 						`
 						UNWIND $batch AS sourcePath
-						MATCH (source:Note {path: sourcePath})
+						MATCH (source {path: sourcePath})
 						RETURN sourcePath
 						`,
 						{ batch: sourceBatchData }
@@ -328,14 +328,14 @@ export async function syncRelationships(
 						isOutgoing
 							? `
 								UNWIND $batch AS item
-								MATCH (source:Note {path: item.sourcePath})
-								MATCH (target:Note {path: item.targetPath})
+								MATCH (source {path: item.sourcePath})
+								MATCH (target {path: item.targetPath})
 								MERGE (source)-[r:${relationshipType}]->(target)
 								`
 							: `
 								UNWIND $batch AS item
-								MATCH (source:Note {path: item.sourcePath})
-								MATCH (target:Note {path: item.targetPath})
+								MATCH (source {path: item.sourcePath})
+								MATCH (target {path: item.targetPath})
 								MERGE (target)-[r:${relationshipType}]->(source)
 								`,
 						{ batch: relationshipBatchData }
