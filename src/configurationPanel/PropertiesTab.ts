@@ -35,12 +35,6 @@ export class PropertiesTab {
 		this.container.empty()
 		this.container.addClass("graphdb-properties-tab")
 
-		// Header
-		const header = this.container.createDiv("graphdb-tab-header")
-		header.createEl("h2", {
-			text: "All Properties",
-		})
-
 		// Controls
 		const controls = this.container.createDiv("graphdb-tab-controls")
 		

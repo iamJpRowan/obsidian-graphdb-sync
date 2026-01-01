@@ -4,13 +4,13 @@ import { StateService } from "./services/StateService"
 import { SyncQueueService } from "./services/SyncQueueService"
 import { StatusBarService } from "./statusBar/StatusBarService"
 import {
-	DashboardViewV2,
-	DASHBOARD_VIEW_TYPE_V2,
-} from "./dashboardView/DashboardView"
+	ConfigurationPanel,
+	CONFIGURATION_PANEL_VIEW_TYPE,
+} from "./configurationPanel"
 import { SettingsTab } from "./settingsTab"
 import { DEFAULT_SETTINGS, type PluginSettings } from "./types"
 
-export const VIEW_TYPE_GRAPHDB_SYNC = DASHBOARD_VIEW_TYPE_V2
+export const VIEW_TYPE_GRAPHDB_SYNC = CONFIGURATION_PANEL_VIEW_TYPE
 
 export default class GraphDBSyncPlugin extends Plugin {
 	settings: PluginSettings
@@ -38,16 +38,16 @@ export default class GraphDBSyncPlugin extends Plugin {
 		// Register settings tab
 		this.addSettingTab(new SettingsTab(this))
 
-		// Register dashboard view
+		// Register configuration panel view
 		this.registerView(
 			VIEW_TYPE_GRAPHDB_SYNC,
-			(leaf) => new DashboardViewV2(leaf, this)
+			(leaf) => new ConfigurationPanel(leaf, this)
 		)
 
-		// Register command to open dashboard
+		// Register command to open configuration panel
 		this.addCommand({
-			id: "open-dashboard",
-			name: "Open sync dashboard",
+			id: "open-configuration-panel",
+			name: "Open configuration panel",
 			callback: async () => {
 				await this.activateView()
 			},
@@ -82,7 +82,7 @@ export default class GraphDBSyncPlugin extends Plugin {
 	}
 
 	/**
-	 * Activates or opens the dashboard view
+	 * Activates or opens the configuration panel view
 	 */
 	private async activateView(): Promise<void> {
 		const { workspace } = this.app
@@ -119,7 +119,7 @@ export default class GraphDBSyncPlugin extends Plugin {
 	 * Public method for status bar service to start migration
 	 */
 	startMigration(): Promise<void> {
-		// Migration is now handled within the dashboard view
+		// Migration is now handled within the configuration panel view
 		// Just open the view
 		return this.activateView()
 	}
