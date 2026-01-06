@@ -230,6 +230,7 @@
 	background-color: var(--interactive-accent);
 	border-radius: 2px;
 	transition: width 0.2s ease;
+	width: var(--progress-width, 0%);
 }
 
 .graphdb-migration-progress-text {
@@ -473,6 +474,14 @@
 	display: none;
 }
 
+.graphdb-migration-history-entry.expanded .graphdb-migration-history-details {
+	display: block;
+}
+
+.graphdb-migration-history-entry.expanded .graphdb-migration-history-details {
+	display: block;
+}
+
 .graphdb-migration-history-section {
 	margin-bottom: 16px;
 }
@@ -660,6 +669,10 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
+}
+
+.graphdb-tab-filter-label {
+	color: var(--text-muted);
 }
 
 .graphdb-tab-filter-checkbox {

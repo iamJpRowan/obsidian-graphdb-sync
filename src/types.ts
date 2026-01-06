@@ -247,7 +247,7 @@ export interface MigrationResult {
 	errorCount: number
 	duration: number
 	message?: string
-	phasesExecuted: Array<"nodes" | "relationships">
+	phasesExecuted: Array<"nodes" | "relationships" | "labels">
 	nodeErrors: NodeCreationError[]
 	relationshipErrors: RelationshipCreationError[]
 	propertyStats: Record<string, RelationshipPropertyCounts>
@@ -255,6 +255,12 @@ export interface MigrationResult {
 		successCount: number
 		errorCount: number
 	}
+	// Label sync statistics (from full sync or label-only sync)
+	labelStats?: {
+		labelsApplied: number
+		errorCount: number
+	}
+	labelErrors?: LabelApplicationError[]
 	// Neo4j statistics (optional for backward compatibility)
 	nodesCreated?: number
 	nodesUpdated?: number
@@ -348,6 +354,20 @@ export interface RelationshipSyncItem extends BaseSyncItem {
 }
 
 /**
+ * Label sync item (applying Neo4j labels to nodes)
+ */
+export interface LabelSyncItem extends BaseSyncItem {
+	type: "label-sync"
+	
+	// Label statistics from Neo4j (null until completed)
+	labelsApplied: number | null      // Number of labels successfully applied
+	
+	// Errors
+	errors: Array<{ file: string; label: string; error: string }>
+	labelErrors: LabelApplicationError[]
+}
+
+/**
  * Future: File sync item (placeholder for future implementation)
  */
 export interface FileSyncItem extends BaseSyncItem {
@@ -361,6 +381,7 @@ export interface FileSyncItem extends BaseSyncItem {
 export type SyncItem = 
 	| PropertySyncItem
 	| RelationshipSyncItem
+	| LabelSyncItem
 	| FileSyncItem
 
 /**
@@ -382,6 +403,10 @@ export function isRelationshipSyncItem(item: SyncItem): item is RelationshipSync
 	return item.type === "relationship-sync"
 }
 
+export function isLabelSyncItem(item: SyncItem): item is LabelSyncItem {
+	return item.type === "label-sync"
+}
+
 export function isFileSyncItem(item: SyncItem): item is FileSyncItem {
 	return item.type === "file-sync"
 }
@@ -395,10 +420,18 @@ export interface NodePropertyMapping {
 	enabled: boolean
 }
 
-// Label rule (placeholder for future implementation)
+// Label rule for applying Neo4j labels to nodes
 export interface LabelRule {
-	type: string
-	pattern: string
-	// TODO: Add more fields when label rules are implemented
-	[key: string]: unknown
+	id: string  // Unique immutable identifier
+	labelName: string  // Neo4j label name (editable)
+	type: "tag" | "path"  // Rule type: tag-based or path-based
+	pattern: string  // Tag value (e.g., "project/active") or path pattern (e.g., "Projects/Notes/**")
+}
+
+// Label application error
+export interface LabelApplicationError {
+	file: string
+	label: string      // The label name that failed to apply
+	error: string
+	errorType: ErrorType
 }

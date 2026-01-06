@@ -4,6 +4,7 @@ import { ConfigurationService } from "../ConfigurationService"
 import { SyncInfrastructure } from "./infrastructure"
 import { syncNodeProperties } from "./operations/nodeSync"
 import { syncRelationships } from "./operations/relationshipSync"
+import { syncLabelsWithSession } from "./operations/labelSync"
 import type { SyncContext, SyncOptions, SyncProgress } from "./types"
 import { StateService } from "../StateService"
 
@@ -335,11 +336,33 @@ export async function syncAll(context: SyncContext, options?: SyncOptions): Prom
 			relationshipErrors.push(...relResult.errors)
 		}
 
+		// Phase 3: Sync labels (if not cancelled)
+		let labelStats = { labelsApplied: 0, errorCount: 0 }
+		const labelErrors: import("../../types").LabelApplicationError[] = []
+		let labelResult: import("./operations/labelSync").LabelSyncResult | null = null
+
+		if (!SyncInfrastructure.isCancelled()) {
+			labelResult = await syncLabelsWithSession(
+				session,
+				context.vaultPath,
+				files,
+				context.app,
+				context.settings,
+				options?.labelFilter,
+				context.onProgress
+			)
+			labelStats = {
+				labelsApplied: labelResult.labelsApplied,
+				errorCount: labelResult.errorCount,
+			}
+			labelErrors.push(...labelResult.errors)
+		}
+
 		// Cleanup
 		await SyncInfrastructure.cleanupDriverAndSession(driver, session)
 		SyncInfrastructure.clearSync()
 
-		const totalErrorCount = nodeResult.errorCount + relationshipStats.errorCount
+		const totalErrorCount = nodeResult.errorCount + relationshipStats.errorCount + labelStats.errorCount
 
 		return {
 			success: nodeResult.success && totalErrorCount === 0,
@@ -348,11 +371,13 @@ export async function syncAll(context: SyncContext, options?: SyncOptions): Prom
 			errorCount: totalErrorCount,
 			duration: nodeResult.duration,
 			message: nodeResult.message,
-			phasesExecuted: ["nodes", "relationships"],
+			phasesExecuted: ["nodes", "relationships", "labels"],
 			nodeErrors: nodeResult.nodeErrors,
 			relationshipErrors,
 			propertyStats,
 			relationshipStats,
+			labelStats,
+			labelErrors,
 			nodesCreated: nodeResult.nodesCreated,
 			nodesUpdated: nodeResult.nodesUpdated,
 			propertiesSet: nodeResult.propertiesSet,

@@ -3,6 +3,7 @@ import type {
 	SyncItem,
 	PropertySyncItem,
 	RelationshipSyncItem,
+	LabelSyncItem,
 	PluginSettings,
 	Neo4jCredentials,
 } from "../types"
@@ -121,8 +122,98 @@ export class SyncQueueService {
 	}
 
 	/**
-	 * Adds a full sync to the queue (property-sync then relationship-sync)
-	 * Full syncs use a Set of all currently enabled properties
+	 * Adds a label sync to the queue
+	 * Merges with existing label-sync item if one exists
+	 */
+	static addLabelSync(
+		labelName: string,
+		settings: PluginSettings
+	): void {
+		const queueState = StateService.getQueueState()
+		const queue = [...queueState.queue]
+
+		// Check if full sync exists (contains all labels)
+		const fullSync = this.findFullLabelSync(queue, settings)
+		if (fullSync) {
+			// Full sync exists, add label to it if not already included
+			const labelsSet = fullSync.properties instanceof Set ? fullSync.properties : new Set(fullSync.properties)
+			if (!labelsSet.has(labelName)) {
+				if (fullSync.properties instanceof Set) {
+					fullSync.properties.add(labelName)
+				} else {
+					fullSync.properties = new Set([...fullSync.properties, labelName])
+				}
+				StateService.setQueueState({ queue })
+			}
+			// Label already in full sync or will be covered, skip adding
+			return
+		}
+
+		// Find existing label-sync item
+		const existing = queue.find(
+			(item) => item.type === "label-sync"
+		)
+
+		if (existing) {
+			// Add label to existing item (Set auto-deduplicates)
+			if (existing.properties instanceof Set) {
+				existing.properties.add(labelName)
+			} else {
+				// Convert to Set if it's an array (shouldn't happen in queue, but safety check)
+				const existingSet = new Set(existing.properties)
+				existingSet.add(labelName)
+				existing.properties = existingSet
+			}
+		} else {
+			// Add new item to end of queue
+			const newItem: LabelSyncItem = {
+				id: `queue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+				type: "label-sync",
+				properties: new Set([labelName]),
+				status: "queued",
+				startTime: null,
+				timestamp: null,
+				success: null,
+				duration: null,
+				message: null,
+				totalFiles: null,
+				successCount: null,
+				errorCount: null,
+				labelsApplied: null,
+				errors: [],
+				labelErrors: [],
+			}
+			queue.push(newItem)
+		}
+
+		StateService.setQueueState({ queue })
+		this.startProcessing(settings)
+	}
+
+	/**
+	 * Finds a full label sync item in the queue
+	 * Full syncs are identified by having all label rules
+	 */
+	private static findFullLabelSync(
+		queue: SyncItem[],
+		settings: PluginSettings
+	): LabelSyncItem | undefined {
+		const allLabelNames = ConfigurationService.getLabelRules(settings).map(r => r.labelName)
+
+		// Find queue item that contains all labels (or more)
+		return queue.find((item) => {
+			if (item.type !== "label-sync") {
+				return false
+			}
+			// Check if this item contains all labels (it's a full sync)
+			const labelsSet = item.properties instanceof Set ? item.properties : new Set(item.properties)
+			return allLabelNames.every(label => labelsSet.has(label))
+		}) as LabelSyncItem | undefined
+	}
+
+	/**
+	 * Adds a full sync to the queue (property-sync then relationship-sync then label-sync)
+	 * Full syncs use a Set of all currently enabled properties/labels
 	 */
 	static addFullSync(settings: PluginSettings): void {
 		const queueState = StateService.getQueueState()
@@ -131,13 +222,16 @@ export class SyncQueueService {
 		// Get all enabled properties for each type
 		const enabledNodeProperties = ConfigurationService.getEnabledNodePropertyMappings(settings)
 		const enabledRelationshipProperties = ConfigurationService.getEnabledRelationshipMappings(settings)
+		const allLabelRules = ConfigurationService.getLabelRules(settings)
 
 		const nodePropertyNames = new Set(enabledNodeProperties.map(m => m.propertyName))
 		const relationshipPropertyNames = new Set(enabledRelationshipProperties.map(m => m.propertyName))
+		const labelNames = new Set(allLabelRules.map(r => r.labelName))
 
 		// Check if full syncs already exist
 		const existingPropertySync = this.findFullSync(queue, "property-sync", settings)
 		const existingRelationshipSync = this.findFullSync(queue, "relationship-sync", settings)
+		const existingLabelSync = this.findFullLabelSync(queue, settings)
 
 		// Add property-sync if not already queued
 		if (!existingPropertySync) {
@@ -207,6 +301,38 @@ export class SyncQueueService {
 					existingRelationshipSync.properties = existingSet
 				}
 			}
+
+		// Add label-sync if not already queued
+		if (!existingLabelSync) {
+			const newItem: LabelSyncItem = {
+				id: `queue-${Date.now()}-label`,
+				type: "label-sync",
+				properties: labelNames,
+				status: "queued",
+				startTime: null,
+				timestamp: null,
+				success: null,
+				duration: null,
+				message: null,
+				totalFiles: null,
+				successCount: null,
+				errorCount: null,
+				labelsApplied: null,
+				errors: [],
+				labelErrors: [],
+			}
+			queue.push(newItem)
+		} else {
+			// Update existing full sync with any newly added labels
+			if (existingLabelSync.properties instanceof Set) {
+				const labelsSet = existingLabelSync.properties
+				labelNames.forEach(label => labelsSet.add(label))
+			} else {
+				const existingSet = new Set(existingLabelSync.properties)
+				labelNames.forEach(label => existingSet.add(label))
+				existingLabelSync.properties = existingSet
+			}
+		}
 
 		StateService.setQueueState({ queue })
 		this.startProcessing(settings)
@@ -390,6 +516,15 @@ export class SyncQueueService {
 					app,
 					settings
 				)
+			} else if (item.type === "label-sync") {
+				await this.processLabelSync(
+					item as LabelSyncItem,
+					vaultPath,
+					uri,
+					{ username, password },
+					app,
+					settings
+				)
 			}
 		} catch (error) {
 			// Update item with error state
@@ -403,7 +538,9 @@ export class SyncQueueService {
 			item.duration = duration
 			item.message = item.type === "property-sync" 
 				? `Property sync failed: ${errorMessage}`
-				: `Relationship sync failed: ${errorMessage}`
+				: item.type === "relationship-sync"
+					? `Relationship sync failed: ${errorMessage}`
+					: `Label sync failed: ${errorMessage}`
 			item.totalFiles = 0
 			item.successCount = 0
 			item.errorCount = 0
@@ -545,6 +682,68 @@ export class SyncQueueService {
 			error: e.error,
 		}))
 		item.relationshipErrors = result.relationshipErrors
+
+		// Convert properties to array and move to history
+		await this.moveToHistory(item)
+	}
+
+	/**
+	 * Processes a label-sync item
+	 */
+	private static async processLabelSync(
+		item: LabelSyncItem,
+		vaultPath: string,
+		uri: string,
+		credentials: Neo4jCredentials,
+		app: import("obsidian").App,
+		settings: PluginSettings
+	): Promise<void> {
+		// Convert Set to array for SyncService
+		const labels = item.properties instanceof Set 
+			? Array.from(item.properties)
+			: item.properties
+
+		// Import labelSync operation
+		const { syncLabels } = await import("./SyncService/operations/labelSync")
+
+		// Sync labels
+		const result = await syncLabels(
+			app,
+			vaultPath,
+			uri,
+			credentials,
+			settings,
+			labels
+		)
+
+		// Update item with results
+		// Check if sync was cancelled (check if SyncInfrastructure was cancelled)
+		const { SyncInfrastructure } = await import("./SyncService/infrastructure")
+		const isCancelled = SyncInfrastructure.isCancelled() ||
+			result.message?.toLowerCase().includes("cancelled") ||
+			(!result.success && result.message?.toLowerCase().includes("cancel"))
+		
+		if (isCancelled) {
+			item.status = "cancelled"
+			item.message = "Cancelled"
+		} else {
+			item.status = "completed"
+			item.message = result.message || "Label sync completed"
+		}
+		
+		item.timestamp = Date.now()
+		item.success = result.success
+		item.duration = result.duration
+		item.totalFiles = result.labelsApplied + result.errorCount // Approximate
+		item.successCount = result.labelsApplied
+		item.errorCount = result.errorCount
+		item.labelsApplied = result.labelsApplied
+		item.errors = result.errors.map((e) => ({
+			file: e.file,
+			label: e.label,
+			error: e.error,
+		}))
+		item.labelErrors = result.errors
 
 		// Convert properties to array and move to history
 		await this.moveToHistory(item)

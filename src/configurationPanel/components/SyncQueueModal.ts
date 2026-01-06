@@ -111,17 +111,29 @@ export class SyncQueueModal extends Modal {
 		
 		// Type
 		const typeEl = summary.createSpan("graphdb-migration-history-date")
-		typeEl.setText(
-			item.type === "property-sync" ? "Property sync" : "Relationship sync"
-		)
+		let typeText: string
+		if (item.type === "property-sync") {
+			typeText = "Property sync"
+		} else if (item.type === "relationship-sync") {
+			typeText = "Relationship sync"
+		} else if (item.type === "label-sync") {
+			typeText = "Label sync"
+		} else {
+			typeText = "Sync"
+		}
+		typeEl.setText(typeText)
 
-		// Properties
+		// Properties/Labels
 		const propsEl = summary.createSpan("graphdb-migration-history-stats")
 		const propsArray = item.properties instanceof Set 
 			? Array.from(item.properties)
 			: item.properties
 		if (propsArray.length === 0) {
-			propsEl.setText("No properties")
+			if (item.type === "label-sync") {
+				propsEl.setText("No labels")
+			} else {
+				propsEl.setText("No properties")
+			}
 		} else {
 			propsEl.setText(propsArray.join(", "))
 		}

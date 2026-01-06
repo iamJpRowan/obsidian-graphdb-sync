@@ -11,7 +11,7 @@ export const CONFIGURATION_PANEL_VIEW_TYPE = "graphdb-sync-configuration-panel"
  * Configuration panel view
  * Shows sync panel, properties tab, and settings tab
  */
-type TabId = "properties" | "settings"
+type TabId = "properties" | "settings" | "labels"
 
 interface TabConfig {
 	id: TabId
@@ -25,12 +25,14 @@ export class ConfigurationPanel extends ItemView {
 	private syncPanel: SyncPanel | null = null
 	private propertiesTab: PropertiesTab | null = null
 	private settingsTab: SettingsTab | null = null
+	private labelsTab: import("./LabelsTab/index").LabelsTab | null = null
 	private tabContainer: HTMLElement | null = null
 	private tabContentContainer: HTMLElement | null = null
 	private activeTab: TabId = "properties"
 
 	private readonly tabs: TabConfig[] = [
 		{ id: "properties", label: "Properties", icon: "table-properties" },
+		{ id: "labels", label: "Labels", icon: "tags" },
 		{ id: "settings", label: "Settings", icon: "settings" },
 	]
 
@@ -66,6 +68,9 @@ export class ConfigurationPanel extends ItemView {
 		if (this.settingsTab) {
 			this.settingsTab.destroy()
 		}
+		if (this.labelsTab) {
+			this.labelsTab.destroy()
+		}
 	}
 
 	private render(): void {
@@ -94,7 +99,7 @@ export class ConfigurationPanel extends ItemView {
 
 		// Tab content container
 		this.tabContentContainer = this.contentContainer.createDiv("graphdb-configuration-panel-tab-content")
-		this.renderActiveTab()
+		this.renderActiveTab().catch(console.error)
 	}
 
 	private renderTabs(): void {
@@ -124,22 +129,31 @@ export class ConfigurationPanel extends ItemView {
 
 		this.activeTab = tab
 		this.renderTabs()
-		this.renderActiveTab()
+		this.renderActiveTab().catch(console.error)
 	}
 
-	private renderActiveTab(): void {
+	private async renderActiveTab(): Promise<void> {
 		if (!this.tabContentContainer) return
 
 		this.tabContentContainer.empty()
 
-		// Destroy previous tab
-		this.destroyTab(this.activeTab === "properties" ? "settings" : "properties")
+		// Destroy all tabs (only one will be active)
+		this.destroyTab("properties")
+		this.destroyTab("labels")
+		this.destroyTab("settings")
 
 		// Create and render active tab
 		if (this.activeTab === "properties") {
 			const propertiesContainer = this.tabContentContainer.createDiv("graphdb-properties-container")
 			this.propertiesTab = new PropertiesTab(
 				propertiesContainer,
+				this.plugin
+			)
+		} else if (this.activeTab === "labels") {
+			const labelsContainer = this.tabContentContainer.createDiv("graphdb-labels-container")
+			const { LabelsTab } = await import("./LabelsTab/index")
+			this.labelsTab = new LabelsTab(
+				labelsContainer,
 				this.plugin
 			)
 		} else if (this.activeTab === "settings") {
@@ -158,6 +172,9 @@ export class ConfigurationPanel extends ItemView {
 		if (tab === "properties" && this.propertiesTab) {
 			this.propertiesTab.destroy()
 			this.propertiesTab = null
+		} else if (tab === "labels" && this.labelsTab) {
+			this.labelsTab.destroy()
+			this.labelsTab = null
 		} else if (tab === "settings" && this.settingsTab) {
 			this.settingsTab.destroy()
 			this.settingsTab = null

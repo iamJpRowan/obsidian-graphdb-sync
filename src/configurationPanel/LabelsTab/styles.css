@@ -1,0 +1,310 @@
+/* Label row styles - following PropertyRow patterns */
+.graphdb-label-row-wrapper {
+	position: relative;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	margin-bottom: 8px;
+	background: var(--background-primary);
+}
+
+.graphdb-label-row {
+	padding: 8px 12px;
+	cursor: pointer;
+}
+
+.graphdb-label-row-first-group {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.graphdb-label-row-name-container {
+	flex: 0 0 auto;
+	min-width: 150px; /* Fixed minimum width for alignment */
+	max-width: 300px; /* Prevent excessive width */
+}
+
+.graphdb-label-row-name {
+	font-weight: 500;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.graphdb-label-row-pattern-container {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex: 0 0 auto;
+	min-width: 200px; /* Fixed minimum width for alignment */
+}
+
+.graphdb-label-row-pattern-icon {
+	display: flex;
+	align-items: center;
+	color: var(--text-muted);
+}
+
+.graphdb-label-row-pattern {
+	font-size: 0.9em;
+	color: var(--text-muted);
+}
+
+/* Action icon container - positioned at far right */
+.graphdb-label-row-action-icon-container {
+	display: flex;
+	align-items: center;
+	margin-left: auto;
+	gap: 4px;
+}
+
+/* Edit icon - shown on hover when collapsed */
+.graphdb-label-row-edit-icon {
+	visibility: hidden;
+	opacity: 0;
+	display: flex;
+	align-items: center;
+	color: var(--text-muted);
+	cursor: pointer;
+	padding: 2px;
+	border-radius: 4px;
+	transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+	pointer-events: none;
+}
+
+.graphdb-label-row:not(.graphdb-label-row-expanded):hover .graphdb-label-row-edit-icon {
+	visibility: visible;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.graphdb-label-row-edit-icon:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+/* Error icon - shown when invalid (highest priority) */
+.graphdb-label-row-error-icon {
+	visibility: hidden;
+	opacity: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-error);
+	cursor: help;
+
+	box-sizing: border-box;
+	transition: opacity 0.2s ease;
+	pointer-events: none;
+}
+
+.graphdb-label-row-action-icon-container.has-error .graphdb-label-row-error-icon {
+	visibility: visible;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Save button - shown when expanded and valid */
+.graphdb-label-row-save-button {
+	visibility: hidden;
+	opacity: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	color: var(--text-normal);
+	padding: 4px;
+	border-radius: 4px;
+
+	box-sizing: border-box;
+	transition: background-color 0.2s ease, opacity 0.2s ease;
+	pointer-events: none;
+}
+
+.graphdb-label-row-expanded .graphdb-label-row-action-icon-container:not(.has-error) .graphdb-label-row-save-button {
+	visibility: visible;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.graphdb-label-row-save-button:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.graphdb-label-row-save-button-disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	color: var(--text-muted);
+}
+
+.graphdb-label-row-save-button-disabled:hover {
+	background-color: transparent;
+}
+
+.graphdb-label-row-cog {
+	position: absolute;
+	top: 8px;
+	right: 40px;
+	cursor: pointer;
+	color: var(--text-muted);
+	padding: 4px;
+	border-radius: 4px;
+}
+
+.graphdb-label-row-cog:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.graphdb-label-row-delete {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	cursor: pointer;
+	color: var(--text-muted);
+	padding: 4px;
+	border-radius: 4px;
+}
+
+.graphdb-label-row-delete:hover {
+	color: var(--text-error);
+	background: var(--background-modifier-hover);
+}
+
+.graphdb-label-row-sync-container {
+	position: absolute;
+	top: 8px;
+	right: 80px;
+}
+
+/* Configuration container visibility */
+.graphdb-label-row-config {
+	display: none;
+	padding: 12px;
+	border-top: 1px solid var(--background-modifier-border);
+	position: relative;
+}
+
+.graphdb-label-row-config-visible {
+	display: block;
+}
+
+/* First row of config: label name, sync, delete, save */
+.graphdb-label-row-config-first-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.graphdb-label-row-config-label-name-container {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.graphdb-label-row-config-sync-container {
+	display: flex;
+	align-items: flex-start;
+}
+
+.graphdb-label-row-config-delete {
+	cursor: pointer;
+	color: var(--text-muted);
+	padding: 4px;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+}
+
+.graphdb-label-row-config-delete:hover {
+	color: var(--text-error);
+	background: var(--background-modifier-hover);
+}
+
+/* Type and pattern on same row */
+.graphdb-label-row-config-type-pattern-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.graphdb-label-row-config-type-container {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.graphdb-label-row-config-type-select-hidden {
+	position: absolute;
+	opacity: 0;
+	width: 1px;
+	height: 1px;
+	pointer-events: none;
+	z-index: -1;
+}
+
+.graphdb-label-row-config-type-button {
+	cursor: pointer;
+	padding: 6px;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+}
+
+.graphdb-label-row-config-type-button:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.graphdb-label-row-config-type-icon {
+	display: flex;
+	align-items: center;
+}
+
+/* Validation styling */
+.graphdb-label-row-config-input-invalid {
+	border-color: var(--text-error) !important;
+}
+
+.graphdb-label-row-config-select-invalid {
+	border-color: var(--text-error) !important;
+}
+
+.graphdb-label-row-config-error-message {
+	min-height: 1.2em;
+	visibility: hidden;
+	color: var(--text-error);
+	font-size: 0.85em;
+	margin-top: 4px;
+	line-height: 1.2;
+}
+
+.graphdb-label-row-config-error-message:not(:empty) {
+	visibility: visible;
+}
+
+.graphdb-label-row-config-error-icon-container {
+	display: flex;
+	align-items: center;
+}
+
+.graphdb-label-row-config-error-icon {
+	display: flex;
+	align-items: center;
+	color: var(--text-error);
+	cursor: help;
+}
+
+
+/* Pattern container for error message */
+.graphdb-label-row-config-pattern-container {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}
+

@@ -1,6 +1,6 @@
 import { Modal, setIcon } from "obsidian"
 import type GraphDBSyncPlugin from "../../main"
-import type { SyncItem, PropertySyncItem, RelationshipSyncItem } from "../../types"
+import type { SyncItem, PropertySyncItem, RelationshipSyncItem, LabelSyncItem } from "../../types"
 
 /**
  * Modal for displaying sync history and detailed results
@@ -71,14 +71,23 @@ export class MigrationHistoryModal extends Modal {
 			}
 			
 			// Sync type and date/time
-			const typeText = entry.type === "property-sync" ? "Property sync" : "Relationship sync"
+			let typeText: string
+			if (entry.type === "property-sync") {
+				typeText = "Property sync"
+			} else if (entry.type === "relationship-sync") {
+				typeText = "Relationship sync"
+			} else if (entry.type === "label-sync") {
+				typeText = "Label sync"
+			} else {
+				typeText = "Sync"
+			}
 			const dateStr = entry.timestamp !== null 
 				? new Date(entry.timestamp).toLocaleString()
 				: "No timestamp"
 			line1.createSpan("graphdb-migration-history-type").setText(typeText)
 			line1.createSpan("graphdb-migration-history-date").setText(` • ${dateStr}`)
 			
-			// Line 2: Statistics (nodes/relationships created/updated, duration)
+			// Line 2: Statistics (nodes/relationships/labels created/updated, duration)
 			const line2 = summary.createDiv("graphdb-migration-history-line2")
 			const statsParts: string[] = []
 			
@@ -95,6 +104,10 @@ export class MigrationHistoryModal extends Modal {
 				}
 				if (entry.relationshipsUpdated !== null && entry.relationshipsUpdated > 0) {
 					statsParts.push(`${entry.relationshipsUpdated} relationships updated`)
+				}
+			} else if (entry.type === "label-sync") {
+				if (entry.labelsApplied !== null && entry.labelsApplied > 0) {
+					statsParts.push(`${entry.labelsApplied} label${entry.labelsApplied === 1 ? "" : "s"} applied`)
 				}
 			}
 			
@@ -123,16 +136,14 @@ export class MigrationHistoryModal extends Modal {
 			const expandIcon = headerEl.createSpan("graphdb-migration-history-expand")
 			setIcon(expandIcon, "chevron-down")
 			
-			// Details section (initially hidden)
+			// Details section (initially hidden - CSS handles display)
 			const detailsEl = entryEl.createDiv("graphdb-migration-history-details")
-			detailsEl.style.display = "none"
 			this.renderEntryDetails(detailsEl, entry)
 			
 			// Toggle on click
 			let isExpanded = false
 			const toggleDetails = () => {
 				isExpanded = !isExpanded
-				detailsEl.style.display = isExpanded ? "block" : "none"
 				setIcon(expandIcon, isExpanded ? "chevron-up" : "chevron-down")
 				entryEl.toggleClass("expanded", isExpanded)
 			}
@@ -161,10 +172,12 @@ export class MigrationHistoryModal extends Modal {
 			this.renderPropertySyncDetails(container, entry)
 		} else if (entry.type === "relationship-sync") {
 			this.renderRelationshipSyncDetails(container, entry)
+		} else if (entry.type === "label-sync") {
+			this.renderLabelSyncDetails(container, entry)
 		}
 
-		// Errors (common to both types)
-		if ((entry.type === "property-sync" || entry.type === "relationship-sync") && entry.errors && entry.errors.length > 0) {
+		// Errors (common to all types except FileSyncItem)
+		if ((entry.type === "property-sync" || entry.type === "relationship-sync" || entry.type === "label-sync") && entry.errors && entry.errors.length > 0) {
 			const errorsEl = container.createDiv("graphdb-migration-history-section")
 			errorsEl.createEl("h4", { text: `Errors (${entry.errors.length})` })
 			const errorsList = errorsEl.createDiv("graphdb-migration-history-errors-list")
@@ -179,7 +192,16 @@ export class MigrationHistoryModal extends Modal {
 						`${error.property} → ${error.target}: ${error.error}`
 					)
 				})
-			} else {
+			} else if (entry.type === "label-sync") {
+				// Label errors have file, label, and error
+				entry.errors.slice(0, 10).forEach((error: { file: string; label: string; error: string }) => {
+					const errorItem = errorsList.createDiv("graphdb-migration-history-error-item")
+					errorItem.createSpan("graphdb-migration-history-error-file").setText(error.file)
+					errorItem.createSpan("graphdb-migration-history-error-details").setText(
+						`${error.label}: ${error.error}`
+					)
+				})
+			} else if (entry.type === "property-sync") {
 				// Property sync errors only have file and error
 				entry.errors.slice(0, 10).forEach((error: { file: string; error: string }) => {
 					const errorItem = errorsList.createDiv("graphdb-migration-history-error-item")
@@ -296,6 +318,53 @@ export class MigrationHistoryModal extends Modal {
 			if (entry.relationshipErrors.length > 10) {
 				relErrorsList.createDiv("graphdb-migration-history-error-more").setText(
 					`... and ${entry.relationshipErrors.length - 10} more errors`
+				)
+			}
+		}
+	}
+
+	/**
+	 * Renders details for label sync entry
+	 */
+	private renderLabelSyncDetails(container: HTMLElement, entry: LabelSyncItem): void {
+		// Labels synced
+		const labelsEl = container.createDiv("graphdb-migration-history-section")
+		labelsEl.createEl("h4", { text: "Labels synced" })
+		const labelsArray = entry.properties instanceof Set 
+			? Array.from(entry.properties)
+			: entry.properties
+		if (labelsArray.length > 0) {
+			labelsEl.createSpan().setText(labelsArray.join(", "))
+		} else {
+			labelsEl.createSpan().setText("No labels")
+		}
+
+		// Label statistics
+		if (entry.labelsApplied !== null) {
+			const labelStatsEl = container.createDiv("graphdb-migration-history-section")
+			labelStatsEl.createEl("h4", { text: "Statistics" })
+			labelStatsEl.createSpan().setText(
+				`${entry.labelsApplied} label${entry.labelsApplied === 1 ? "" : "s"} applied`
+			)
+		}
+
+		// Label errors (if available)
+		if (entry.labelErrors && entry.labelErrors.length > 0) {
+			const labelErrorsEl = container.createDiv("graphdb-migration-history-section")
+			labelErrorsEl.createEl("h4", { text: `Label application errors (${entry.labelErrors.length})` })
+			const labelErrorsList = labelErrorsEl.createDiv("graphdb-migration-history-errors-list")
+			
+			entry.labelErrors.slice(0, 10).forEach(error => {
+				const errorItem = labelErrorsList.createDiv("graphdb-migration-history-error-item")
+				errorItem.createSpan("graphdb-migration-history-error-file").setText(error.file)
+				errorItem.createSpan("graphdb-migration-history-error-details").setText(
+					`${error.label}: ${error.error}`
+				)
+			})
+			
+			if (entry.labelErrors.length > 10) {
+				labelErrorsList.createDiv("graphdb-migration-history-error-more").setText(
+					`... and ${entry.labelErrors.length - 10} more errors`
 				)
 			}
 		}

@@ -13,7 +13,7 @@ import type {
 export interface SyncProgress {
 	current: number
 	total: number
-	status: "scanning" | "connecting" | "creating_nodes" | "updating_properties" | "creating_relationships"
+	status: "scanning" | "connecting" | "creating_nodes" | "updating_properties" | "creating_relationships" | "applying_labels"
 	currentFile?: string
 }
 
@@ -30,6 +30,8 @@ export interface SyncOptions {
 	nodePropertyFilter?: string[]
 	/** Optional list of relationship property names to sync (only these will be synced) */
 	relationshipPropertyFilter?: string[]
+	/** Optional list of label names to sync (only these will be synced) */
+	labelFilter?: string[]
 }
 
 /**

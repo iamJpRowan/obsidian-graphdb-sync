@@ -165,14 +165,18 @@ export class ConfigurationService {
 		return settings.labelRules || []
 	}
 
+	static getLabelRule(settings: PluginSettings, id: string): LabelRule | null {
+		return settings.labelRules?.find(r => r.id === id) || null
+	}
+
 	static async saveLabelRule(plugin: GraphDBSyncPlugin, rule: LabelRule): Promise<void> {
 		if (!plugin.settings.labelRules) {
 			plugin.settings.labelRules = []
 		}
 
-		// Update existing or add new
+		// Update existing or add new (using id as unique identifier)
 		const index = plugin.settings.labelRules.findIndex(
-			(r) => r.type === rule.type && r.pattern === rule.pattern
+			(r) => r.id === rule.id
 		)
 
 		if (index >= 0) {
@@ -184,13 +188,13 @@ export class ConfigurationService {
 		await plugin.saveSettings()
 	}
 
-	static async deleteLabelRule(plugin: GraphDBSyncPlugin, rule: LabelRule): Promise<void> {
+	static async deleteLabelRule(plugin: GraphDBSyncPlugin, id: string): Promise<void> {
 		if (!plugin.settings.labelRules) {
 			return
 		}
 
 		plugin.settings.labelRules = plugin.settings.labelRules.filter(
-			(r) => !(r.type === rule.type && r.pattern === rule.pattern)
+			(r) => r.id !== id
 		)
 
 		await plugin.saveSettings()

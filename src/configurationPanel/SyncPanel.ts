@@ -331,7 +331,16 @@ export class SyncPanel {
 			}
 			
 			// Type and date
-			const typeText = lastResult.type === "property-sync" ? "Property sync" : "Relationship sync"
+			let typeText: string
+			if (lastResult.type === "property-sync") {
+				typeText = "Property sync"
+			} else if (lastResult.type === "relationship-sync") {
+				typeText = "Relationship sync"
+			} else if (lastResult.type === "label-sync") {
+				typeText = "Label sync"
+			} else {
+				typeText = "Sync"
+			}
 			const dateStr = lastResult.timestamp !== null 
 				? new Date(lastResult.timestamp).toLocaleString()
 				: "No timestamp"
@@ -351,7 +360,8 @@ export class SyncPanel {
 
 		const progressBarContainer = container.createDiv("graphdb-migration-progress-bar-container")
 		const progressBar = progressBarContainer.createDiv("graphdb-migration-progress-bar")
-		progressBar.style.width = `${percentage}%`
+		// Use CSS custom property for dynamic width (standard approach for dynamic CSS values)
+		progressBar.style.setProperty("--progress-width", `${percentage}%`)
 	}
 
 	/**
@@ -364,6 +374,7 @@ export class SyncPanel {
 			creating_nodes: "Creating nodes",
 			updating_properties: "Updating properties",
 			creating_relationships: "Creating relationships",
+			applying_labels: "Applying labels",
 		}
 		return statusMap[status] || status
 	}
