@@ -741,9 +741,7 @@
 	position: relative;
 }
 
-.graphdb-property-row-wrapper-enabled {
-	border-color: var(--text-normal);
-}
+/* Enabled state now indicated by text color, not border */
 
 .graphdb-property-row {
 	display: flex;
@@ -779,6 +777,7 @@
 	width: 20px;
 	height: 20px;
 	color: var(--text-muted);
+	transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .graphdb-property-row-name-container {
@@ -802,11 +801,45 @@
 	font-weight: 500;
 	font-size: 0.95em;
 	color: var(--text-normal);
+	transition: color 0.2s ease, font-weight 0.2s ease, opacity 0.2s ease;
+}
+
+/* Disabled state: lighter weight, muted text, reduced opacity - applied to all row content */
+.graphdb-property-row-wrapper:not(.graphdb-property-row-wrapper-enabled) .graphdb-property-row-name {
+	font-weight: 400;
+	color: var(--text-muted);
+	opacity: 0.45;
+}
+
+.graphdb-property-row-wrapper:not(.graphdb-property-row-wrapper-enabled) .graphdb-property-row-icon,
+.graphdb-property-row-wrapper:not(.graphdb-property-row-wrapper-enabled) .graphdb-property-row-occurrences,
+.graphdb-property-row-wrapper:not(.graphdb-property-row-wrapper-enabled) .graphdb-property-row-cog,
+.graphdb-property-row-wrapper:not(.graphdb-property-row-wrapper-enabled) .graphdb-property-row-diagram,
+.graphdb-property-row-wrapper:not(.graphdb-property-row-wrapper-enabled) .graphdb-property-row-diagram-icon,
+.graphdb-property-row-wrapper:not(.graphdb-property-row-wrapper-enabled) .graphdb-property-row-diagram-text {
+	opacity: 0.45;
+}
+
+/* Enabled state: medium weight, normal text, full opacity - applied to all row content */
+.graphdb-property-row-wrapper-enabled .graphdb-property-row-name {
+	font-weight: 500;
+	color: var(--text-normal);
+	opacity: 1;
+}
+
+.graphdb-property-row-wrapper-enabled .graphdb-property-row-icon,
+.graphdb-property-row-wrapper-enabled .graphdb-property-row-occurrences,
+.graphdb-property-row-wrapper-enabled .graphdb-property-row-cog,
+.graphdb-property-row-wrapper-enabled .graphdb-property-row-diagram,
+.graphdb-property-row-wrapper-enabled .graphdb-property-row-diagram-icon,
+.graphdb-property-row-wrapper-enabled .graphdb-property-row-diagram-text {
+	opacity: 1;
 }
 
 .graphdb-property-row-occurrences {
 	font-size: 0.85em;
 	color: var(--text-muted);
+	transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .graphdb-property-row-cog {
@@ -821,7 +854,7 @@
 	color: var(--text-muted);
 	cursor: pointer;
 	opacity: 0.6;
-	transition: opacity 0.2s ease, transform 0.2s ease;
+	transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
 	z-index: 1;
 }
 
@@ -959,6 +992,7 @@
 	gap: 8px;
 	white-space: nowrap;
 	flex-shrink: 0;
+	transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .graphdb-property-row-diagram-icon {
@@ -968,10 +1002,12 @@
 	width: 16px;
 	height: 16px;
 	color: var(--text-muted);
+	transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .graphdb-property-row-diagram-text {
 	color: var(--text-normal);
+	transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .graphdb-property-config-actions {
